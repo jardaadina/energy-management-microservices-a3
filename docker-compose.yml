@@ -1,0 +1,194 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # TRAEFIK REVERSE PROXY
+  # ============================================
+  reverse-proxy:
+    image: traefik:v3.2
+    container_name: reverse-proxy
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+      - "--accesslog=true"
+    ports:
+      - "80:80"       # HTTP
+      - "8080:8080"   # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - energy-network
+    labels:
+      # Definește middleware-ul JWT global
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.auth-jwt.headers.customrequestheaders.Authorization=Bearer YOUR_TOKEN_HERE"
+      # SAU dacă ai plugin-ul JWT (varianta mai complexă)
+      # Trebuie să configurezi plugin-ul corect
+
+  # ============================================
+  # USER DATABASE
+  # ============================================
+  user-db:
+    image: postgres:16
+    container_name: user-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Luci2004
+      POSTGRES_DB: user_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - user-data:/var/lib/postgresql/data
+    networks:
+      - energy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # DEVICE DATABASE
+  # ============================================
+  device-db:
+    image: postgres:16
+    container_name: device-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Luci2004
+      POSTGRES_DB: device_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - device-data:/var/lib/postgresql/data
+    networks:
+      - energy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # AUTHENTICATION DATABASE
+  # ============================================
+  auth-db:
+    image: postgres:16
+    container_name: auth-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Luci2004
+      POSTGRES_DB: auth_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - auth-data:/var/lib/postgresql/data
+    networks:
+      - energy-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # USER MICROSERVICE
+  # ============================================
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    depends_on:
+      user-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Luci2004
+      SERVER_PORT: 8081
+      AUTH_SERVICE_URL: http://auth-service:8083
+    networks:
+      - energy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.user-service.rule=PathPrefix(`/users`)"
+      - "traefik.http.routers.user-service.entrypoints=web"
+      # Middleware pentru verificare JWT prin auth-service
+      - "traefik.http.middlewares.jwt-verify.forwardauth.address=http://auth-service:8083/auth/validate"
+      - "traefik.http.middlewares.jwt-verify.forwardauth.authResponseHeaders=X-User-Id,X-User-Role"
+      - "traefik.http.routers.user-service.middlewares=jwt-verify"
+      - "traefik.http.services.user-service.loadbalancer.server.port=8081"
+
+  # ============================================
+  # DEVICE MICROSERVICE
+  # ============================================
+  device-service:
+    build:
+      context: ./device-service
+      dockerfile: Dockerfile
+    container_name: device-service
+    depends_on:
+      device-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://device-db:5432/device_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Luci2004
+      SERVER_PORT: 8082
+      AUTH_SERVICE_URL: http://auth-service:8083
+    networks:
+      - energy-network
+    labels:
+      - "traefik.enable=true"
+
+      # Router pentru /devices
+      - "traefik.http.routers.device-service-devices.rule=PathPrefix(`/devices`)"
+      - "traefik.http.routers.device-service-devices.entrypoints=web"
+      - "traefik.http.routers.device-service-devices.middlewares=jwt-verify"
+
+      # Router pentru /user-devices
+      - "traefik.http.routers.device-service-user-devices.rule=PathPrefix(`/user-devices`)"
+      - "traefik.http.routers.device-service-user-devices.entrypoints=web"
+      - "traefik.http.routers.device-service-user-devices.middlewares=jwt-verify"
+
+      # Serviciul backend
+      - "traefik.http.services.device-service.loadbalancer.server.port=8082"
+
+  # ============================================
+  #  AUTHENTICATION MICROSERVICE
+  # ============================================
+  auth-service:
+    build:
+      context: ./authentication-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Luci2004
+      SERVER_PORT: 8083
+      JWT_SECRET: myVerySecretKeyForJWTTokenGenerationThatShouldBeLongEnough123456
+    networks:
+      - energy-network
+    labels:
+      - "traefik.enable=true"
+      # Router pentru /auth - FĂRĂ JWT middleware (trebuie accesibil pentru login)
+      - "traefik.http.routers.auth-service.rule=PathPrefix(`/auth`)"
+      - "traefik.http.routers.auth-service.entrypoints=web"
+      - "traefik.http.services.auth-service.loadbalancer.server.port=8083"
+
+networks:
+  energy-network:
+    driver: bridge
+
+volumes:
+  user-data:
+  device-data:
+  auth-data:
