@@ -24,13 +24,16 @@ services:
     labels:
       - "traefik.enable=true"
 
-      # === DEFINIȚIA MIDDLEWARE-ULUI PENTRU VALIDARE JWT (Corectat) ===
+      # === MIDDLEWARE PENTRU VALIDARE JWT ===
       - "traefik.http.middlewares.jwt-verify.forwardauth.address=http://auth-service:8083/auth/validate"
       - "traefik.http.middlewares.jwt-verify.forwardauth.trustForwardHeader=true"
       - "traefik.http.middlewares.jwt-verify.forwardauth.authResponseHeaders=X-User-Id, X-User-Role, X-Username"
 
+      # Username: admin, Password: admin123
+      # - "traefik.http.middlewares.basic-auth.basicauth.users=admin:$$apr1$$8EVjn/nj$$GiLUZqcbueTFeD23SuB6x0"
+
   # ============================================
-  # BAZE DE DATE (Neschimbate)
+  # BAZE DE DATE
   # ============================================
   user-db:
     image: postgres:16
@@ -43,7 +46,7 @@ services:
     volumes: ["user-data:/var/lib/postgresql/data"]
     networks: ["energy-network"]
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d user_db" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d user_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,7 +62,7 @@ services:
     volumes: ["device-data:/var/lib/postgresql/data"]
     networks: ["energy-network"]
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d device_db" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d device_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,12 +78,13 @@ services:
     volumes: ["auth-data:/var/lib/postgresql/data"]
     networks: ["energy-network"]
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d auth_db" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+
   # ============================================
-  # PGADMIN - Database Management Tool
+  # PGADMIN
   # ============================================
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -96,7 +100,7 @@ services:
       - pgadmin-data:/var/lib/pgadmin
 
   # ============================================
-  # USER SERVICE (Modificat cu 'priority')
+  # USER SERVICE
   # ============================================
   user-service:
     build:
@@ -104,7 +108,9 @@ services:
       dockerfile: Dockerfile
     container_name: user-service
     depends_on:
-      user-db: { condition: service_healthy }
+      user-db: {condition: service_healthy}
+    ports:
+      - "8081:8081"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_db
       SPRING_DATASOURCE_USERNAME: postgres
@@ -114,14 +120,20 @@ services:
     networks: ["energy-network"]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.user-service.rule=PathPrefix(`/users`)"
-      - "traefik.http.routers.user-service.entrypoints=web"
-      - "traefik.http.routers.user-service.middlewares=jwt-verify@docker"
-      - "traefik.http.routers.user-service.priority=10" # <-- PRIORITATE MARE
+
+      - "traefik.http.routers.user-api.rule=PathPrefix(`/users`)"
+      - "traefik.http.routers.user-api.entrypoints=web"
+      - "traefik.http.routers.user-api.middlewares=jwt-verify@docker"
+      - "traefik.http.routers.user-api.service=user-service"
+
+      # pentru Basic Auth
+      # - "traefik.http.routers.user-api.middlewares=basic-auth@docker"
+
+      # Service definition
       - "traefik.http.services.user-service.loadbalancer.server.port=8081"
 
   # ============================================
-  # DEVICE SERVICE (Modificat cu 'priority')
+  # DEVICE SERVICE
   # ============================================
   device-service:
     build:
@@ -129,7 +141,9 @@ services:
       dockerfile: Dockerfile
     container_name: device-service
     depends_on:
-      device-db: { condition: service_healthy }
+      device-db: {condition: service_healthy}
+    ports:
+      - "8082:8082"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://device-db:5432/device_db
       SPRING_DATASOURCE_USERNAME: postgres
@@ -138,21 +152,26 @@ services:
     networks: ["energy-network"]
     labels:
       - "traefik.enable=true"
-      # Router pentru /devices
-      - "traefik.http.routers.device-service-devices.rule=PathPrefix(`/devices`)"
-      - "traefik.http.routers.device-service-devices.entrypoints=web"
-      - "traefik.http.routers.device-service-devices.middlewares=jwt-verify@docker"
-      - "traefik.http.routers.device-service-devices.priority=10" # <-- PRIORITATE MARE
-      # Router pentru /user-devices
-      - "traefik.http.routers.device-service-user-devices.rule=PathPrefix(`/user-devices`)"
-      - "traefik.http.routers.device-service-user-devices.entrypoints=web"
-      - "traefik.http.routers.device-service-user-devices.middlewares=jwt-verify@docker"
-      - "traefik.http.routers.device-service-user-devices.priority=10" # <-- PRIORITATE MARE
-      # Serviciul backend
+
+      - "traefik.http.routers.device-api-devices.rule=PathPrefix(`/devices`)"
+      - "traefik.http.routers.device-api-devices.entrypoints=web"
+      - "traefik.http.routers.device-api-devices.middlewares=jwt-verify@docker"
+      - "traefik.http.routers.device-api-devices.service=device-service"
+
+      - "traefik.http.routers.device-api-user-devices.rule=PathPrefix(`/user-devices`)"
+      - "traefik.http.routers.device-api-user-devices.entrypoints=web"
+      - "traefik.http.routers.device-api-user-devices.middlewares=jwt-verify@docker"
+      - "traefik.http.routers.device-api-user-devices.service=device-service"
+
+
+      # - "traefik.http.routers.device-api-devices.middlewares=basic-auth@docker"
+      # - "traefik.http.routers.device-api-user-devices.middlewares=basic-auth@docker"
+
+      # Service definition
       - "traefik.http.services.device-service.loadbalancer.server.port=8082"
 
   # ============================================
-  #  AUTHENTICATION MICROSERVICE (Modificat cu 'priority')
+  # AUTHENTICATION SERVICE
   # ============================================
   auth-service:
     build:
@@ -160,7 +179,9 @@ services:
       dockerfile: Dockerfile
     container_name: auth-service
     depends_on:
-      auth-db: { condition: service_healthy }
+      auth-db: {condition: service_healthy}
+    ports:
+      - "8083:8083"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
       SPRING_DATASOURCE_USERNAME: postgres
@@ -170,19 +191,18 @@ services:
     networks: ["energy-network"]
     labels:
       - "traefik.enable=true"
-      # Router pentru /auth (FĂRĂ JWT)
-      - "traefik.http.routers.auth-service.rule=PathPrefix(`/auth`)"
-      - "traefik.http.routers.auth-service.entrypoints=web"
-      - "traefik.http.routers.auth-service.priority=10" # <-- PRIORITATE MARE
-      # Serviciul backend
+      # Router pentru /auth - FĂRĂ AUTENTIFICARE (login trebuie să fie public)
+      - "traefik.http.routers.auth-api.rule=PathPrefix(`/auth`)"
+      - "traefik.http.routers.auth-api.entrypoints=web"
+      - "traefik.http.routers.auth-api.service=auth-service"
+      # Service definition
       - "traefik.http.services.auth-service.loadbalancer.server.port=8083"
 
   # ============================================
-  #  FRONTEND SERVICE (Serviciul NOU)
+  # FRONTEND SERVICE
   # ============================================
   frontend-service:
     build:
-      # Modifică 'frontend' cu numele folderului tău de frontend
       context: ./frontend
       dockerfile: Dockerfile
     container_name: frontend-service
@@ -190,11 +210,9 @@ services:
       - energy-network
     labels:
       - "traefik.enable=true"
-      # Această regulă prinde tot traficul către domeniul principal
       - "traefik.http.routers.frontend-service.rule=Host(`localhost`)"
       - "traefik.http.routers.frontend-service.entrypoints=web"
-      - "traefik.http.routers.frontend-service.priority=1" # <-- PRIORITATE MICĂ
-      # Nginx din container rulează pe portul 80
+      - "traefik.http.routers.frontend-service.priority=1"
       - "traefik.http.services.frontend-service.loadbalancer.server.port=80"
 
 networks:

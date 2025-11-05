@@ -9,12 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from './components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Toaster } from './components/ui/sonner';
-// === AM ADĂUGAT 'Lock' AICI ===
 import { LogOut, Plus, Pencil, Trash2, Users, Cpu, Link2, Zap, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Importăm noile servicii JS
-// @ts-ignore - Ignorăm eroarea TS pentru importurile JS
+// @ts-ignore
 import { authService } from './services/authService.js';
 // @ts-ignore
 import { deviceService } from './services/deviceService.js';
@@ -22,7 +20,6 @@ import { deviceService } from './services/deviceService.js';
 import { userService } from './services/userService.js';
 
 
-// Definițiile tipurilor (User - Corect)
 export type User = {
     id: string;
     username: string;
@@ -33,7 +30,6 @@ export type User = {
     role: 'ADMIN' | 'CLIENT';
 };
 
-// Definițiile tipurilor (Device - Corect)
 export type Device = {
     id: string;
     name: string;
@@ -46,13 +42,11 @@ export type Assignment = {
     deviceId: string;
 };
 
-// Tipul pentru crearea unui user (Corect)
 export type CreateUserRequest = Omit<User, 'id' | 'role'> & {
     password: string;
     role: string;
 };
 
-// Tipul pentru crearea unui device (Corect)
 export type CreateDeviceRequest = Omit<Device, 'id'>;
 
 
@@ -60,7 +54,6 @@ export default function App() {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Verifică sesiunea la încărcarea aplicației (Corect)
     useEffect(() => {
         const checkSession = async () => {
             try {
@@ -96,9 +89,6 @@ export default function App() {
     return <UserPage user={currentUser} onLogout={handleLogout} />;
 }
 
-// ===================================
-// === MODIFICAT AICI: NOUL LOGIN PAGE ===
-// ===================================
 function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -113,10 +103,7 @@ function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
 
         setLoading(true);
         try {
-            // --- AM CORECLAT AICI ---
-            // Am înlocuit 'api.login' cu 'authService.login' pentru a folosi serviciul real
             const user = await authService.login(username, password);
-            // --- SFÂRȘIT CORECLAT ---
 
             if (user) {
                 onLogin(user);
@@ -171,10 +158,6 @@ function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
     );
 }
 
-
-// ===================================
-// ADMIN PAGE (Neschimbat)
-// ===================================
 function AdminPage({ user, onLogout }: { user: User; onLogout: () => void }) {
     return (
         <>
@@ -216,15 +199,11 @@ function AdminPage({ user, onLogout }: { user: User; onLogout: () => void }) {
     );
 }
 
-// ===================================
-// Admin Tab: User Management (Neschimbat)
-// ===================================
 function UserManagementTab() {
     const [users, setUsers] = useState<User[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
-    // Starea formularului (Corectă)
     const [formData, setFormData] = useState({
         name: '',
         username: '',
@@ -248,7 +227,6 @@ function UserManagementTab() {
         }
     };
 
-    // Funcția de deschidere a modalului (Corectă)
     const openModal = (user: User | null = null) => {
         setEditingUser(user);
         setFormData({
@@ -263,11 +241,9 @@ function UserManagementTab() {
         setIsModalOpen(true);
     };
 
-    // Logica de salvare (Corectă)
     const handleSave = async () => {
         try {
             if (editingUser) {
-                // Logica de UPDATE (fără parolă)
                 await userService.updateUser(editingUser.id, {
                     name: formData.name,
                     username: formData.username,
@@ -278,7 +254,6 @@ function UserManagementTab() {
                 });
                 toast.success('User updated successfully.');
             } else {
-                // Logica de CREATE (cu parolă)
                 await userService.createUser({
                     name: formData.name,
                     username: formData.username,
@@ -320,7 +295,6 @@ function UserManagementTab() {
                 </div>
             </CardHeader>
             <CardContent>
-                {/* Tabelul (Corect) */}
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -354,7 +328,6 @@ function UserManagementTab() {
                 </Table>
             </CardContent>
 
-            {/* Formularul din Modal (Corect) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -393,7 +366,7 @@ function UserManagementTab() {
                             placeholder={editingUser ? 'Password (leave blank to keep unchanged)' : 'Password'}
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            disabled={!!editingUser} // Dezactivăm parola la editare
+                            disabled={!!editingUser}
                         />
                         <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
                             <SelectTrigger>
@@ -417,15 +390,11 @@ function UserManagementTab() {
     );
 }
 
-// ===================================
-// Admin Tab: Device Management (Corectat)
-// ===================================
 function DeviceManagementTab() {
     const [devices, setDevices] = useState<Device[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDevice, setEditingDevice] = useState<Device | null>(null);
 
-    // Starea formularului (Corectată: name, maxConsumption)
     const [formData, setFormData] = useState({ name: '', maxConsumption: 0 });
 
     useEffect(() => {
@@ -441,21 +410,19 @@ function DeviceManagementTab() {
         }
     };
 
-    // Funcția de deschidere a modalului (Corectată)
     const openModal = (device: Device | null = null) => {
         setEditingDevice(device);
         setFormData({
-            name: device?.name || '', // Corectat: 'name'
+            name: device?.name || '',
             maxConsumption: device?.maxConsumption || 0,
         });
         setIsModalOpen(true);
     };
 
-    // Logica de salvare (Corectată)
     const handleSave = async () => {
         try {
             const deviceData = {
-                name: formData.name, // Corectat: 'name'
+                name: formData.name,
                 maxConsumption: Number(formData.maxConsumption),
             };
 
@@ -496,7 +463,6 @@ function DeviceManagementTab() {
                 </div>
             </CardHeader>
             <CardContent>
-                {/* Tabelul (Corectat) */}
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -524,7 +490,6 @@ function DeviceManagementTab() {
                 </Table>
             </CardContent>
 
-            {/* Formularul din Modal (Corectat) */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -555,21 +520,15 @@ function DeviceManagementTab() {
     );
 }
 
-// ===================================
-// Admin Tab: Assignment Management (Corectat)
-// ===================================
 function AssignmentManagementTab() {
-    // Statul pentru "Assign"
     const [userIdInput, setUserIdInput] = useState('');
     const [deviceIdInput, setDeviceIdInput] = useState('');
 
-    // Stat pentru "User Lookup"
-    const [lookupUserId, setLookupUserId] = useState(''); // Câmpul de input
-    const [searchedUserId, setSearchedUserId] = useState(''); // ID-ul căutat efectiv
-    const [lookedUpDevices, setLookedUpDevices] = useState<Device[]>([]); // Lista de dispozitive găsite
+    const [lookupUserId, setLookupUserId] = useState('');
+    const [searchedUserId, setSearchedUserId] = useState('');
+    const [lookedUpDevices, setLookedUpDevices] = useState<Device[]>([]);
     const [isLoadingLookup, setIsLoadingLookup] = useState(false);
 
-    // Funcția de "Assign" (Corectată)
     const handleAssign = async () => {
         if (!userIdInput || !deviceIdInput) {
             toast.warning('Please enter a User ID and a Device ID.');
@@ -590,7 +549,6 @@ function AssignmentManagementTab() {
         }
     };
 
-    // Funcția de "Search" (Corectată)
     const handleSearch = async (idToSearch: string) => {
         if (!idToSearch) {
             toast.warning('Please enter a User ID to search.');
@@ -611,7 +569,6 @@ function AssignmentManagementTab() {
         setIsLoadingLookup(false);
     };
 
-    // Funcția de "Unassign" (Corectată)
     const handleUnassign = async (deviceId: string) => {
         if (!searchedUserId) return;
 
@@ -632,7 +589,6 @@ function AssignmentManagementTab() {
                 <CardTitle>Device Assignments</CardTitle>
             </CardHeader>
             <CardContent>
-                {/* Partea de "Assign" (Corectată) */}
                 <div className="mb-6 space-y-4 rounded-md border p-4">
                     <h3 className="font-semibold">Assign New Device</h3>
                     <div className="flex gap-4">
@@ -662,7 +618,6 @@ function AssignmentManagementTab() {
                         <Button onClick={() => handleSearch(lookupUserId)}>Search</Button>
                     </div>
 
-                    {/* Tabelul cu rezultate (Corectat) */}
                     {searchedUserId && (
                         <div className="mt-6">
                             <h4 className="font-medium">Devices for User ID: {searchedUserId}</h4>
@@ -712,9 +667,6 @@ function AssignmentManagementTab() {
     );
 }
 
-// ===================================
-// === MODIFICAT AICI: NOUL USER PAGE ===
-// ===================================
 function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
     const [devices, setDevices] = useState<Device[]>([]);
     const [loading, setLoading] = useState(true);
@@ -723,13 +675,9 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
         loadDevices();
     }, []);
 
-    // --- AM CORECLAT AICI ---
-    // Am înlocuit logica ta de filtrare cu apelul API direct,
-    // care este mai eficient și corect.
     const loadDevices = async () => {
-        setLoading(true); // Asigură-te că setezi loading
+        setLoading(true);
         try {
-            // Folosește serviciul real și endpoint-ul dedicat
             const data = await deviceService.getMyDevices();
             setDevices(data);
         } catch (error) {
@@ -739,7 +687,6 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
             setLoading(false);
         }
     };
-    // --- SFÂRȘIT CORECLAT ---
 
     const totalConsumption = devices.reduce((sum, d) => sum + d.maxConsumption, 0);
 
@@ -749,7 +696,6 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
                 <header className="bg-white border-b">
                     <div className="container mx-auto px-4 py-4 flex justify-between items-center">
                         <div>
-                            {/* Am schimbat titlul */}
                             <h1 className="text-xl font-bold text-indigo-600">My Energy Monitor</h1>
                             <p className="text-sm text-muted-foreground">Welcome, {user.name}</p>
                         </div>

@@ -1,4 +1,3 @@
-// src/services/authService.js
 import apiClient from './apiClient';
 
 /**
@@ -22,22 +21,20 @@ const login = async (username, password) => {
             password,
         });
 
-        // Backend-ul returnează: { token, type, username, role, userId }
         if (response.data && response.data.token) {
             localStorage.setItem('jwtToken', response.data.token);
 
-            // Construim obiectul User din răspuns
             return {
                 id: response.data.userId.toString(),
                 username: response.data.username,
-                name: response.data.username, // Folosim username ca name
-                role: response.data.role // "ADMIN" sau "CLIENT"
+                name: response.data.username,
+                role: response.data.role
             };
         }
         return null;
     } catch (error) {
         console.error('Eroare la login:', error.response?.data || error.message);
-        throw error; // Aruncăm eroarea ca să o prindă componenta
+        throw error;
     }
 };
 
@@ -46,7 +43,7 @@ const login = async (username, password) => {
  */
 const logout = () => {
     localStorage.removeItem('jwtToken');
-    window.location.href = '/'; // Reîncarcă și trimite la login
+    window.location.href = '/';
 };
 
 /**
@@ -60,26 +57,25 @@ const validateSession = async () => {
     }
 
     try {
-        // Apelăm /auth/validate
+
         const response = await apiClient.get('/auth/validate');
 
-        // Răspunsul conține { valid: true, userId, username, authorities: ["ROLE_..."] }
         if (response.data && response.data.valid) {
             const role = (response.data.authorities[0] || 'ROLE_CLIENT')
-                .replace('ROLE_', ''); // Rezultat: "ADMIN" or "CLIENT"
+                .replace('ROLE_', '');
 
-            // Reconstruim obiectul User
+
             return {
                 id: response.data.userId,
                 username: response.data.username,
-                name: response.data.username, // Folosim username ca name, pt că /validate nu-l returnează
-                role: role, // "ADMIN" sau "CLIENT"
+                name: response.data.username,
+                role: role,
             };
         }
         return null;
     } catch (error) {
         console.error('Validare sesiune eșuată:', error);
-        localStorage.removeItem('jwtToken'); // Curățăm token-ul invalid
+        localStorage.removeItem('jwtToken');
         return null;
     }
 };

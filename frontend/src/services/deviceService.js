@@ -1,7 +1,5 @@
-// src/services/deviceService.js
 import apiClient from './apiClient.js';
 
-// --- Funcții pentru USER ---
 
 /**
  * Preia doar dispozitivele alocate user-ului curent
@@ -17,7 +15,6 @@ const getMyDevices = async () => {
     }
 };
 
-// --- Funcții pentru ADMIN ---
 
 /**
  * Preia TOATE dispozitivele
@@ -114,7 +111,6 @@ const unassignDevice = async (userId, deviceId) => {
     }
 };
 
-// Exportăm tot
 export const deviceService = {
     getMyDevices,
     getAllDevices,
