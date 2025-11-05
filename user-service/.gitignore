@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Frontend (Node.js / React / Angular / Vue) ###
+**/node_modules/
+**/.next/
+**/dist/
+**/build/
+**/.env
