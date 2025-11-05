@@ -18,4 +18,5 @@ public class CreateUserRequest {
     private Integer age;
     private String address;
     private User.Role role;
+    private String password;
 }

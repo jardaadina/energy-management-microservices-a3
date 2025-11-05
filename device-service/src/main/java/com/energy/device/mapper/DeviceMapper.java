@@ -34,7 +34,6 @@ public class DeviceMapper {
 
     public static void updateEntity(Device device, UpdateDeviceRequest request)
     {
-        // Actualizăm doar câmpurile care nu sunt null
         if (request.getName() != null) {
             device.setName(request.getName());
         }

@@ -1,4 +1,4 @@
-FROM maven:3.9 AS build
+FROM maven:3.9-amazoncorretto-25 AS build
 
 ENV TZ=UTC
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -11,7 +11,7 @@ COPY ./src/ /authentication-service/src
 WORKDIR /authentication-service
 RUN mvn clean install -DskipTests
 
-FROM openjdk:25-jdk
+FROM amazoncorretto:25
 WORKDIR /authentication-service
 COPY --from=build /authentication-service/target/authentication-service-0.0.1-SNAPSHOT.jar /authentication-service/authentication-service.jar
 EXPOSE 8083

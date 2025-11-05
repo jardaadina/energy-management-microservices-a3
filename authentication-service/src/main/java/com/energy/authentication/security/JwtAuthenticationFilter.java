@@ -13,7 +13,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -21,6 +23,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
 {
 
     private final JwtUtil jwtUtil;
+
+    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
+            "/auth/login",
+            "/auth/register",
+            "/auth/validate",
+            "/auth/internal",
+            "/auth/health"
+    );
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+    }
 
     @Override
     protected void doFilterInternal(

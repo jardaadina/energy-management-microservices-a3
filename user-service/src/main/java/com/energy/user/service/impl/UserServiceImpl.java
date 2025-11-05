@@ -1,5 +1,6 @@
 package com.energy.user.service.impl;
 
+import com.energy.user.dto.AuthRegistrationRequest;
 import com.energy.user.dto.CreateUserRequest;
 import com.energy.user.dto.UpdateUserRequest;
 import com.energy.user.dto.UserDTO;
@@ -12,9 +13,14 @@ import com.energy.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpHeaders;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,20 +38,37 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO createUser(CreateUserRequest request) {
-        log.info("Creating user: {}", request.getUsername());
+    public UserDTO createUser(CreateUserRequest createUserRequest) {
+        userRepository.findByUsername(createUserRequest.getUsername()).ifPresent(s -> {
+            throw new ResourceAlreadyExistsException("User already exists with username: " + createUserRequest.getUsername());
+        });
 
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new ResourceAlreadyExistsException("Username already exists: " + request.getUsername());
-        }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ResourceAlreadyExistsException("An user with this email already exists: " + request.getEmail());
-        }
+        User user = User.builder()
+                .username(createUserRequest.getUsername())
+                .name(createUserRequest.getName())
+                .email(createUserRequest.getEmail())
+                .age(createUserRequest.getAge())
+                .address(createUserRequest.getAddress())
+                .role(createUserRequest.getRole())
+                .build();
 
-        User user = UserMapper.toEntity(request);
         User savedUser = userRepository.save(user);
 
-        log.info("User created with id: {}", savedUser.getId());
+
+        String authServiceUrl = "http://auth-service:8083/auth/internal/register";
+
+        AuthRegistrationRequest authRequest = new AuthRegistrationRequest(
+                createUserRequest.getUsername(),
+                createUserRequest.getPassword(),
+                createUserRequest.getRole(),
+                savedUser.getId()
+        );
+
+        try {
+            restTemplate.postForEntity(authServiceUrl, authRequest, String.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create user credentials in auth-service. Rolling back.", e);
+        }
         return UserMapper.toDTO(savedUser);
     }
 
@@ -95,13 +118,13 @@ public class UserServiceImpl implements UserService {
                 throw new ResourceAlreadyExistsException("Username already exists: " + request.getUsername());
             }
         }
-        if(request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {}
-        {
-            if(userRepository.existsByEmail(request.getEmail())) {
-                throw new ResourceAlreadyExistsException("An user with this email already exists: " + request.getEmail());
+        if(request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
+            {
+                if (userRepository.existsByEmail(request.getEmail())) {
+                    throw new ResourceAlreadyExistsException("An user with this email already exists: " + request.getEmail());
+                }
             }
         }
-
         UserMapper.updateEntity(user, request);
         User updatedUser = userRepository.save(user);
 
@@ -128,6 +151,15 @@ public class UserServiceImpl implements UserService {
         } catch (Exception e) {
             log.error("Failed to delete device assignments for user id: {}. Error: {}", id, e.getMessage());
             throw new RuntimeException("Failed to delete device assignments, rolling back user deletion", e);
+        }
+        try {
+            String authServiceUrl = "http://auth-service:8083/auth/internal/delete/" + id;
+            log.info("Requesting deletion of auth credentials for user id: {}", id);
+            restTemplate.delete(authServiceUrl);
+            log.info("Auth credentials deletion successful for user id: {}", id);
+        } catch (Exception e) {
+            log.error("Failed to delete auth credentials for user id: {}. Error: {}", id, e.getMessage());
+            throw new RuntimeException("Failed to delete auth credentials, rolling back user deletion", e);
         }
 
         userRepository.deleteById(id);

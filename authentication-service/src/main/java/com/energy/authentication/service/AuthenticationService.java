@@ -31,7 +31,7 @@ public class AuthenticationService {
 
         String token = jwtUtil.generateToken(
                 user.getUsername(),
-                user.getRole(),
+                String.valueOf(user.getRole()),
                 user.getUserId()
         );
 
@@ -75,5 +75,25 @@ public class AuthenticationService {
         headers.put("X-Username", username);
 
         return headers;
+    }
+
+    public void registerNewUser(String username, String password, User.Role role, Long userId) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new RuntimeException("User credentials already exist for: " + username);
+        }
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRole(role);
+        user.setUserId(userId);
+
+        userRepository.save(user);
+    }
+
+    public void deleteUserCredentials(Long userId) {
+        log.info("Attempting to delete credentials for user ID: {}", userId);
+        userRepository.deleteByUserId(userId);
+        log.info("Successfully deleted credentials (if they existed) for user ID: {}", userId);
     }
 }

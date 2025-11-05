@@ -66,4 +66,16 @@ public class AuthenticationController {
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Authentication Service is running");
     }
+
+    @PostMapping("/internal/register")
+    public ResponseEntity<String> internalRegisterUser(@RequestBody InternalCreateUserRequest request) {
+        authenticationService.registerNewUser(request.getUsername(), request.getPassword(), request.getRole(), request.getUserId());
+        return ResponseEntity.ok("User credentials created successfully.");
+    }
+
+    @DeleteMapping("/internal/delete/{userId}")
+    public ResponseEntity<String> internalDeleteUser(@PathVariable Long userId) {
+        authenticationService.deleteUserCredentials(userId);
+        return ResponseEntity.ok("User credentials deleted successfully.");
+    }
 }

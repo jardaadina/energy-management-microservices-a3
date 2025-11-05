@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 
@@ -21,43 +23,55 @@ public class DeviceController {
 
     private final DeviceService deviceService;
 
-    // CREATE - POST http://localhost:8082/devices
+    private void checkAdmin(String role)
+    {
+        if (!"ADMIN".equalsIgnoreCase(role))
+        {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access Denied: Requires ADMIN role.");
+        }
+    }
+
     @PostMapping
-    public ResponseEntity<DeviceDTO> createDevice(@Valid @RequestBody CreateDeviceRequest request) {
+    public ResponseEntity<DeviceDTO> createDevice(@Valid @RequestBody CreateDeviceRequest request,
+                                                  @RequestHeader("X-User-Role") String role)
+    {   checkAdmin(role);
         log.info("REST request to create device: {}", request.getName());
         DeviceDTO device = deviceService.createDevice(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(device);
     }
 
-    // READ ONE - GET http://localhost:8082/devices/1
     @GetMapping("/{id}")
-    public ResponseEntity<DeviceDTO> getDeviceById(@PathVariable Long id) {
+    public ResponseEntity<DeviceDTO> getDeviceById(@PathVariable Long id,
+                                                   @RequestHeader("X-User-Role") String role)
+    {   checkAdmin(role);
         log.info("REST request to get device: {}", id);
         DeviceDTO device = deviceService.getDeviceById(id);
         return ResponseEntity.ok(device);
     }
 
-    // READ ALL - GET http://localhost:8082/devices
     @GetMapping
-    public ResponseEntity<List<DeviceDTO>> getAllDevices() {
+    public ResponseEntity<List<DeviceDTO>> getAllDevices(@RequestHeader("X-User-Role") String role)
+    {   checkAdmin(role);
         log.info("REST request to get all devices");
         List<DeviceDTO> devices = deviceService.getAllDevices();
         return ResponseEntity.ok(devices);
     }
 
-    // UPDATE - PUT http://localhost:8082/devices/1
     @PutMapping("/{id}")
     public ResponseEntity<DeviceDTO> updateDevice(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateDeviceRequest request) {
+            @Valid @RequestBody UpdateDeviceRequest request,
+            @RequestHeader("X-User-Role") String role)
+    {   checkAdmin(role);
         log.info("REST request to update device: {}", id);
         DeviceDTO device = deviceService.updateDevice(id, request);
         return ResponseEntity.ok(device);
     }
 
-    // DELETE - DELETE http://localhost:8082/devices/1
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDevice(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteDevice(@PathVariable Long id,
+                                             @RequestHeader("X-User-Role") String role)
+    {   checkAdmin(role);
         log.info("REST request to delete device: {}", id);
         deviceService.deleteDevice(id);
         return ResponseEntity.noContent().build();

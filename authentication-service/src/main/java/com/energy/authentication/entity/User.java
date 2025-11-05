@@ -22,9 +22,15 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role;
+    private Role role;
 
     @Column(name = "user_id")
     private Long userId;
+
+    public enum Role {
+        ADMIN,
+        CLIENT
+    }
 }

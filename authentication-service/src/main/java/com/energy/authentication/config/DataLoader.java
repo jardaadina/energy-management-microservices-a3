@@ -25,7 +25,7 @@ public class DataLoader implements CommandLineRunner
             User admin = new User();
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode("admin123"));
-            admin.setRole("ADMIN");
+            admin.setRole(User.Role.ADMIN);
             admin.setUserId(1L);
             userRepository.save(admin);
             log.info("Default admin user created: username=admin, password=admin123");
@@ -36,7 +36,7 @@ public class DataLoader implements CommandLineRunner
             User client = new User();
             client.setUsername("client");
             client.setPassword(passwordEncoder.encode("client123"));
-            client.setRole("CLIENT");
+            client.setRole(User.Role.CLIENT);
             client.setUserId(2L);
             userRepository.save(client);
             log.info("Default client user created: username=client, password=client123");
