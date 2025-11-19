@@ -48,8 +48,8 @@ public class DeviceServiceImpl implements DeviceService
             SyncEvent syncEvent = SyncEvent.builder()
                     .eventType("DEVICE_CREATED")
                     .entityId(savedDevice.getId())
-                    .deviceName(savedDevice.getName())           // ✅ ADAUGĂ
-                    .maxConsumption(savedDevice.getMaxConsumption()) // ✅ ADAUGĂ
+                    .deviceName(savedDevice.getName())
+                    .maxConsumption(savedDevice.getMaxConsumption())
                     .build();
 
             rabbitTemplate.convertAndSend(
