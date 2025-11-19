@@ -23,14 +23,9 @@ services:
       - energy-network
     labels:
       - "traefik.enable=true"
-
-      # === MIDDLEWARE PENTRU VALIDARE JWT ===
       - "traefik.http.middlewares.jwt-verify.forwardauth.address=http://auth-service:8083/auth/validate"
       - "traefik.http.middlewares.jwt-verify.forwardauth.trustForwardHeader=true"
       - "traefik.http.middlewares.jwt-verify.forwardauth.authResponseHeaders=X-User-Id, X-User-Role, X-Username"
-
-      # Username: admin, Password: admin123
-      # - "traefik.http.middlewares.basic-auth.basicauth.users=admin:$$apr1$$8EVjn/nj$$GiLUZqcbueTFeD23SuB6x0"
 
   # ============================================
   # BAZE DE DATE
@@ -83,6 +78,42 @@ services:
       timeout: 5s
       retries: 5
 
+  monitoring-db:
+    image: postgres:16
+    container_name: monitoring-db
+    ports: ["5433:5432"]
+    environment:
+      POSTGRES_DB: monitoring_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Luci2004
+    volumes: ["monitoring-data:/var/lib/postgresql/data"]
+    networks: ["energy-network"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d monitoring_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # RABBITMQ MESSAGE BROKER
+  # ============================================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI (user: admin, pass: admin123)
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    networks:
+      - energy-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ============================================
   # PGADMIN
   # ============================================
@@ -109,6 +140,7 @@ services:
     container_name: user-service
     depends_on:
       user-db: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
     ports:
       - "8081:8081"
     environment:
@@ -117,19 +149,17 @@ services:
       SPRING_DATASOURCE_PASSWORD: Luci2004
       SERVER_PORT: 8081
       AUTH_SERVICE_URL: http://auth-service:8083/auth/internal/register
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
     networks: ["energy-network"]
     labels:
       - "traefik.enable=true"
-
       - "traefik.http.routers.user-api.rule=PathPrefix(`/users`)"
       - "traefik.http.routers.user-api.entrypoints=web"
       - "traefik.http.routers.user-api.middlewares=jwt-verify@docker"
       - "traefik.http.routers.user-api.service=user-service"
-
-      # pentru Basic Auth
-      # - "traefik.http.routers.user-api.middlewares=basic-auth@docker"
-
-      # Service definition
       - "traefik.http.services.user-service.loadbalancer.server.port=8081"
 
   # ============================================
@@ -142,6 +172,7 @@ services:
     container_name: device-service
     depends_on:
       device-db: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
     ports:
       - "8082:8082"
     environment:
@@ -149,25 +180,21 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Luci2004
       SERVER_PORT: 8082
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
     networks: ["energy-network"]
     labels:
       - "traefik.enable=true"
-
       - "traefik.http.routers.device-api-devices.rule=PathPrefix(`/devices`)"
       - "traefik.http.routers.device-api-devices.entrypoints=web"
       - "traefik.http.routers.device-api-devices.middlewares=jwt-verify@docker"
       - "traefik.http.routers.device-api-devices.service=device-service"
-
       - "traefik.http.routers.device-api-user-devices.rule=PathPrefix(`/user-devices`)"
       - "traefik.http.routers.device-api-user-devices.entrypoints=web"
       - "traefik.http.routers.device-api-user-devices.middlewares=jwt-verify@docker"
       - "traefik.http.routers.device-api-user-devices.service=device-service"
-
-
-      # - "traefik.http.routers.device-api-devices.middlewares=basic-auth@docker"
-      # - "traefik.http.routers.device-api-user-devices.middlewares=basic-auth@docker"
-
-      # Service definition
       - "traefik.http.services.device-service.loadbalancer.server.port=8082"
 
   # ============================================
@@ -191,12 +218,41 @@ services:
     networks: ["energy-network"]
     labels:
       - "traefik.enable=true"
-      # Router pentru /auth - FĂRĂ AUTENTIFICARE (login trebuie să fie public)
       - "traefik.http.routers.auth-api.rule=PathPrefix(`/auth`)"
       - "traefik.http.routers.auth-api.entrypoints=web"
       - "traefik.http.routers.auth-api.service=auth-service"
-      # Service definition
       - "traefik.http.services.auth-service.loadbalancer.server.port=8083"
+
+  # ============================================
+  # MONITORING SERVICE
+  # ============================================
+  monitoring-service:
+    build:
+      context: ./monitoring-service
+      dockerfile: Dockerfile
+    container_name: monitoring-service
+    depends_on:
+      monitoring-db: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://monitoring-db:5432/monitoring_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Luci2004
+      SERVER_PORT: 8084
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
+    networks: ["energy-network"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitoring-api.rule=PathPrefix(`/monitoring`)"
+      - "traefik.http.routers.monitoring-api.entrypoints=web"
+      - "traefik.http.routers.monitoring-api.middlewares=jwt-verify@docker"
+      - "traefik.http.routers.monitoring-api.service=monitoring-service"
+      - "traefik.http.services.monitoring-service.loadbalancer.server.port=8084"
 
   # ============================================
   # FRONTEND SERVICE
@@ -223,4 +279,5 @@ volumes:
   user-data:
   device-data:
   auth-data:
+  monitoring-data:
   pgadmin-data:

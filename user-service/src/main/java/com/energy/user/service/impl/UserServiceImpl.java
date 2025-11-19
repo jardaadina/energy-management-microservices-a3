@@ -1,9 +1,6 @@
 package com.energy.user.service.impl;
 
-import com.energy.user.dto.AuthRegistrationRequest;
-import com.energy.user.dto.CreateUserRequest;
-import com.energy.user.dto.UpdateUserRequest;
-import com.energy.user.dto.UserDTO;
+import com.energy.user.dto.*;
 import com.energy.user.entity.User;
 import com.energy.user.exception.ResourceAlreadyExistsException;
 import com.energy.user.exception.ResourceNotFoundException;
@@ -12,15 +9,12 @@ import com.energy.user.repository.UserRepository;
 import com.energy.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpHeaders;
+
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,9 +26,16 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     @Value("${device.service.url:http://localhost:8082}")
     private String deviceServiceBaseUrl;
+
+    @Value("${rabbitmq.exchange.sync}")
+    private String syncExchange;
+
+    @Value("${rabbitmq.routing-key.user-created}")
+    private String userCreatedRoutingKey;
 
     @Override
     @Transactional
@@ -69,8 +70,28 @@ public class UserServiceImpl implements UserService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to create user credentials in auth-service. Rolling back.", e);
         }
+
+        try {
+            SyncEvent syncEvent = SyncEvent.builder()
+                    .eventType("USER_CREATED")
+                    .entityId(savedUser.getId())
+                    .username(savedUser.getUsername())
+                    .build();
+
+            rabbitTemplate.convertAndSend(
+                    syncExchange,
+                    userCreatedRoutingKey,
+                    syncEvent
+            );
+
+            log.info("Published USER_CREATED sync event for user: {}", savedUser.getId());
+        } catch (Exception e) {
+            log.error("Failed to publish sync event: {}", e.getMessage());
+        }
+
         return UserMapper.toDTO(savedUser);
     }
+
 
     @Override
     @Transactional(readOnly = true)

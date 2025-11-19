@@ -16,5 +16,10 @@
     "noEmit": true,
     "jsx": "react-jsx",
   },
-  "include": ["src", "vite.config.ts", "index.d.ts", "src/types"]
+  "include": ["src", "vite.config.ts", "index.d.ts", "src/types"],
+
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0"
+  }
 }

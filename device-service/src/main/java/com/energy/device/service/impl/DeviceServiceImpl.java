@@ -2,6 +2,7 @@ package com.energy.device.service.impl;
 
 import com.energy.device.dto.CreateDeviceRequest;
 import com.energy.device.dto.DeviceDTO;
+import com.energy.device.dto.SyncEvent;
 import com.energy.device.dto.UpdateDeviceRequest;
 import com.energy.device.entity.Device;
 import com.energy.device.exception.ResourceNotFoundException;
@@ -11,6 +12,8 @@ import com.energy.device.repository.UserDeviceRepository;
 import com.energy.device.service.DeviceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,13 @@ public class DeviceServiceImpl implements DeviceService
 
     private final DeviceRepository deviceRepository;
     private final UserDeviceRepository userDeviceRepository;
+    private final RabbitTemplate rabbitTemplate;
+
+    @Value("${rabbitmq.exchange.sync}")
+    private String syncExchange;
+
+    @Value("${rabbitmq.routing-key.device-created}")
+    private String deviceCreatedRoutingKey;
 
     @Override
     @Transactional
@@ -34,6 +44,25 @@ public class DeviceServiceImpl implements DeviceService
 
         Device device = DeviceMapper.toEntity(request);
         Device savedDevice = deviceRepository.save(device);
+        try {
+            SyncEvent syncEvent = SyncEvent.builder()
+                    .eventType("DEVICE_CREATED")
+                    .entityId(savedDevice.getId())
+                    .deviceName(savedDevice.getName())           // ✅ ADAUGĂ
+                    .maxConsumption(savedDevice.getMaxConsumption()) // ✅ ADAUGĂ
+                    .build();
+
+            rabbitTemplate.convertAndSend(
+                    syncExchange,
+                    deviceCreatedRoutingKey,
+                    syncEvent
+            );
+
+            log.info("Published DEVICE_CREATED sync event for device: {}", savedDevice.getId());
+        } catch (Exception e) {
+            log.error("Failed to publish sync event: {}", e.getMessage());
+        }
+
         return DeviceMapper.toDTO(savedDevice);
     }
 

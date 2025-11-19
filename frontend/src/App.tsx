@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useState, useEffect } from 'react';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
@@ -11,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Toaster } from './components/ui/sonner';
 import { LogOut, Plus, Pencil, Trash2, Users, Cpu, Link2, Zap, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import EnergyChart from './components/EnergyChart';
 
 // @ts-ignore
 import { authService } from './services/authService.js';
@@ -235,7 +235,7 @@ function UserManagementTab() {
             email: user?.email || '',
             age: user?.age || 0,
             address: user?.address || '',
-            password: '', // Întotdeauna golim parola
+            password: '',
             role: user?.role || 'CLIENT',
         });
         setIsModalOpen(true);
@@ -670,6 +670,7 @@ function AssignmentManagementTab() {
 function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
     const [devices, setDevices] = useState<Device[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
 
     useEffect(() => {
         loadDevices();
@@ -680,6 +681,10 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
         try {
             const data = await deviceService.getMyDevices();
             setDevices(data);
+            // Select first device by default if available
+            if (data.length > 0 && !selectedDeviceId) {
+                setSelectedDeviceId(data[0].id);
+            }
         } catch (error) {
             console.error('Failed to load devices', error);
             toast.error('Failed to load your devices.');
@@ -706,7 +711,7 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
                     </div>
                 </header>
 
-                <main className="container mx-auto px-4 py-8 max-w-4xl">
+                <main className="container mx-auto px-4 py-8 max-w-6xl">
                     <div className="grid gap-4 md:grid-cols-2 mb-6">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -744,13 +749,29 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
                                     <p>No devices assigned</p>
                                 </div>
                             ) : (
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                     {devices.map((device) => (
-                                        <Card key={device.id}>
+                                        <Card
+                                            key={device.id}
+                                            className={`cursor-pointer transition-all ${
+                                                selectedDeviceId === device.id
+                                                    ? 'ring-2 ring-indigo-600 shadow-lg'
+                                                    : 'hover:shadow-md'
+                                            }`}
+                                            onClick={() => setSelectedDeviceId(device.id)}
+                                        >
                                             <CardHeader>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                                                        <Cpu className="h-5 w-5 text-indigo-600" />
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                                        selectedDeviceId === device.id
+                                                            ? 'bg-indigo-600'
+                                                            : 'bg-indigo-100'
+                                                    }`}>
+                                                        <Cpu className={`h-5 w-5 ${
+                                                            selectedDeviceId === device.id
+                                                                ? 'text-white'
+                                                                : 'text-indigo-600'
+                                                        }`} />
                                                     </div>
                                                     <CardTitle className="text-base">{device.name}</CardTitle>
                                                 </div>
@@ -767,6 +788,11 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
                             )}
                         </CardContent>
                     </Card>
+
+                    {/* Energy Chart - Shows only if a device is selected */}
+                    {selectedDeviceId && (
+                        <EnergyChart deviceId={selectedDeviceId} />
+                    )}
                 </main>
             </div>
             <Toaster />
