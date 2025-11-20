@@ -3,6 +3,7 @@ package com.energy.monitoring.service;
 import com.energy.monitoring.dto.DeviceMeasurement;
 import com.energy.monitoring.dto.HourlyConsumptionDTO;
 import com.energy.monitoring.entity.EnergyConsumption;
+import com.energy.monitoring.repository.DeviceReferenceRepository;
 import com.energy.monitoring.repository.EnergyConsumptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,17 +22,16 @@ import java.util.stream.Collectors;
 public class MonitoringService {
 
     private final EnergyConsumptionRepository consumptionRepository;
+    private final DeviceReferenceRepository  referenceRepository;
 
     @Transactional
     public void processDeviceMeasurement(DeviceMeasurement measurement) {
-        // Rotunjește timestamp-ul la ora curentă (începutul orei)
         LocalDateTime hourlyTimestamp = measurement.getTimestamp()
                 .truncatedTo(ChronoUnit.HOURS);
 
         log.info("Processing measurement for device {} at hour {}",
                 measurement.getDeviceId(), hourlyTimestamp);
 
-        // Caută sau creează înregistrarea pentru această oră
         EnergyConsumption consumption = consumptionRepository
                 .findByDeviceIdAndTimestamp(measurement.getDeviceId(), hourlyTimestamp)
                 .orElse(EnergyConsumption.builder()
@@ -40,7 +40,6 @@ public class MonitoringService {
                         .totalConsumption(0.0)
                         .build());
 
-        // Adaugă consumul (measurement-ul e pentru 10 min, acumulăm pentru oră)
         consumption.setTotalConsumption(
                 consumption.getTotalConsumption() + measurement.getMeasurementValue()
         );
@@ -73,5 +72,16 @@ public class MonitoringService {
                 .timestamp(consumption.getTimestamp())
                 .totalConsumption(consumption.getTotalConsumption())
                 .build();
+    }
+
+    @Transactional
+    public void deleteDeviceCredentials(Long deviceId) {
+        log.info("Attempting to delete all data for device ID: {}", deviceId);
+
+        consumptionRepository.deleteByDeviceId(deviceId);
+        log.info("Deleted energy consumption records for device ID: {}", deviceId);
+
+        referenceRepository.deleteById(deviceId);
+        log.info("Successfully deleted device reference for device ID: {}", deviceId);
     }
 }

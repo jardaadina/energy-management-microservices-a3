@@ -23,7 +23,6 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.exchange.sync}")
     private String syncExchange;
 
-    // Device Data Queue
     @Bean
     public Queue deviceDataQueue() {
         return new Queue(deviceDataQueue, true);
@@ -42,7 +41,6 @@ public class RabbitMQConfig {
                 .with("device.data.#");
     }
 
-    // Sync Queue - SPECIFICĂ pentru monitoring
     @Bean
     public Queue monitoringSyncQueue() {
         return new Queue(syncQueue + ".monitoring", true);

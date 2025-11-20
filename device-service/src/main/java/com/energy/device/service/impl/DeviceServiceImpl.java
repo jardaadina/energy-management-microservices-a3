@@ -16,6 +16,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +30,7 @@ public class DeviceServiceImpl implements DeviceService
     private final DeviceRepository deviceRepository;
     private final UserDeviceRepository userDeviceRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final RestTemplate restTemplate;
 
     @Value("${rabbitmq.exchange.sync}")
     private String syncExchange;
@@ -116,6 +118,16 @@ public class DeviceServiceImpl implements DeviceService
 
         log.info("Deleting assignments for device id: {}", id);
         userDeviceRepository.deleteByDeviceId(id);
+
+        try {
+            String authServiceUrl = "http://monitoring-service:8084/monitoring/internal/delete/" + id;
+            log.info("Requesting deletion of device for device id: {}", id);
+            restTemplate.delete(authServiceUrl);
+            log.info("device credentials deletion successful for device id: {}", id);
+        } catch (Exception e) {
+            log.error("Failed to delete deice credentials for device id: {}. Error: {}", id, e.getMessage());
+            throw new RuntimeException("Failed to delete device credentials, rolling back device deletion", e);
+        }
 
         deviceRepository.deleteById(id);
         log.info("Device and its assignments deleted successfully for id: {}", id);

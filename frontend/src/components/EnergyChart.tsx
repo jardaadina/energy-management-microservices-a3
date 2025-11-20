@@ -51,7 +51,6 @@ export default function EnergyChart({ deviceId }: EnergyChartProps) {
 
     useEffect(() => {
         fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate, deviceId]);
 
     const fetchData = async () => {
@@ -82,7 +81,6 @@ export default function EnergyChart({ deviceId }: EnergyChartProps) {
                 return;
             }
 
-            // Transform data for Chart.js
             const labels = data.map(item => {
                 const date = new Date(item.timestamp);
                 const hour = date.getHours();
@@ -222,7 +220,6 @@ export default function EnergyChart({ deviceId }: EnergyChartProps) {
                 </div>
             </CardHeader>
             <CardContent className="pb-8">
-                {/* Controls */}
                 <div className="flex flex-wrap gap-4 mb-8 items-end">
                     <div className="flex-1 min-w-[200px]">
                         <label className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -256,7 +253,6 @@ export default function EnergyChart({ deviceId }: EnergyChartProps) {
                     </Button>
                 </div>
 
-                {/* Chart Container with fixed height */}
                 <div className="w-full border rounded-lg p-4 bg-white" style={{ height: '600px' }}>
                     {loading ? (
                         <div className="flex items-center justify-center h-full">

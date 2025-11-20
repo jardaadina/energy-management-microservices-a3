@@ -21,10 +21,10 @@ public class EnergyConsumption {
     private Long deviceId;
 
     @Column(nullable = false)
-    private LocalDateTime timestamp; // hourly timestamp
+    private LocalDateTime timestamp;
 
     @Column(nullable = false)
-    private Double totalConsumption; // kWh pentru acea oră
+    private Double totalConsumption;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

@@ -17,7 +17,6 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.exchange.sync}")
     private String syncExchange;
 
-    // Queue specifică pentru device-service
     @Bean
     public Queue deviceSyncQueue() {
         return new Queue(syncQueue + ".device", true);
@@ -28,7 +27,6 @@ public class RabbitMQConfig {
         return new TopicExchange(syncExchange);
     }
 
-    // Binding pentru device-service
     @Bean
     public Binding deviceSyncBinding() {
         return BindingBuilder

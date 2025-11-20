@@ -32,4 +32,9 @@ public class MonitoringController {
 
         return ResponseEntity.ok(consumption);
     }
+    @DeleteMapping("/internal/delete/{deviceId}")
+    public ResponseEntity<String> deleteDeviceCredentials(@PathVariable Long deviceId) {
+        monitoringService.deleteDeviceCredentials(deviceId);
+        return ResponseEntity.ok("Device credentials deleted successfully.");
+    }
 }

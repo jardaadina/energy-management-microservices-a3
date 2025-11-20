@@ -15,4 +15,6 @@ public interface EnergyConsumptionRepository extends JpaRepository<EnergyConsump
 
     List<EnergyConsumption> findByDeviceIdAndTimestampBetweenOrderByTimestampAsc(
             Long deviceId, LocalDateTime start, LocalDateTime end);
+
+    void deleteByDeviceId(Long deviceId);
 }
