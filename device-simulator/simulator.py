@@ -94,7 +94,7 @@ class DeviceSimulator:
         """Run the simulator continuously"""
         print(f" Starting Device Simulator for Device ID: {self.device_id}")
         print(f" Sending measurements every {self.interval_seconds} seconds")
-        print("Press Ctrl+C to stop\n")
+        print(" Press Ctrl+C to stop\n")
 
         try:
             while True:

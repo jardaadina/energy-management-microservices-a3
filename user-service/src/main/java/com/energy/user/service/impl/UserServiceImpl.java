@@ -55,7 +55,6 @@ public class UserServiceImpl implements UserService {
 
         User savedUser = userRepository.save(user);
 
-
         String authServiceUrl = "http://auth-service:8083/auth/internal/register";
 
         AuthRegistrationRequest authRequest = new AuthRegistrationRequest(

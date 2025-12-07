@@ -11,6 +11,7 @@ import { Toaster } from './components/ui/sonner';
 import { LogOut, Plus, Pencil, Trash2, Users, Cpu, Link2, Zap, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import EnergyChart from './components/EnergyChart';
+import ChatWidget from './components/ChatWidget';
 
 // @ts-ignore
 import { authService } from './services/authService.js';
@@ -18,7 +19,8 @@ import { authService } from './services/authService.js';
 import { deviceService } from './services/deviceService.js';
 // @ts-ignore
 import { userService } from './services/userService.js';
-
+import AdminChatPanel from "./components/AdminChatPanel";
+import { MessageCircle } from 'lucide-react';
 
 export type User = {
     id: string;
@@ -182,6 +184,9 @@ function AdminPage({ user, onLogout }: { user: User; onLogout: () => void }) {
                         <TabsTrigger value="assignments">
                             <Link2 className="mr-2 h-4 w-4" /> Assignments
                         </TabsTrigger>
+                        <TabsTrigger value="chat">
+                            <MessageCircle className="mr-2 h-4 w-4" /> Customer Support
+                        </TabsTrigger>
                     </TabsList>
                     <TabsContent value="users">
                         <UserManagementTab />
@@ -191,6 +196,9 @@ function AdminPage({ user, onLogout }: { user: User; onLogout: () => void }) {
                     </TabsContent>
                     <TabsContent value="assignments">
                         <AssignmentManagementTab />
+                    </TabsContent>
+                    <TabsContent value="chat">
+                        <AdminChatPanel adminId={user.id} adminName={user.name} />
                     </TabsContent>
                 </Tabs>
             </main>
@@ -795,6 +803,7 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
                     )}
                 </main>
             </div>
+            <ChatWidget userId={user.id} userName={user.name} role={user.role} />
             <Toaster />
         </>
     );

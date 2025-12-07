@@ -142,7 +142,7 @@ services:
       user-db: {condition: service_healthy}
       rabbitmq: {condition: service_healthy}
     ports:
-      - "8081:8081"
+       - "8081:8081"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_db
       SPRING_DATASOURCE_USERNAME: postgres
@@ -270,6 +270,67 @@ services:
       - "traefik.http.routers.frontend-service.entrypoints=web"
       - "traefik.http.routers.frontend-service.priority=1"
       - "traefik.http.services.frontend-service.loadbalancer.server.port=80"
+
+  # ============================================
+  # WEBSOCKET SERVICE (Assignment 3)
+  # ============================================
+  websocket-service:
+    build:
+      context: ./websocket-service
+      dockerfile: Dockerfile
+    container_name: websocket-service
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+    # Expunem portul și direct pentru teste locale dacă Traefik face figuri cu WS
+    ports:
+      - "8086:8086"
+    environment:
+      SERVER_PORT: 8086
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost"
+    networks: ["energy-network"]
+    labels:
+      - "traefik.enable=true"
+      # WebSocket routing - important să prindă /ws
+      - "traefik.http.routers.websocket.rule=PathPrefix(`/ws`)"
+      - "traefik.http.routers.websocket.entrypoints=web"
+      - "traefik.http.routers.websocket.service=websocket-service"
+      - "traefik.http.services.websocket-service.loadbalancer.server.port=8086"
+
+  # ============================================
+  # CUSTOMER SUPPORT SERVICE (Assignment 3)
+  # ============================================
+  customer-support-service:
+    build:
+      context: ./customer-support-service
+      dockerfile: Dockerfile
+    container_name: customer-support-service
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+    ports:
+      - "8087:8087"
+    environment:
+      SERVER_PORT: 8087
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
+      # Pune cheia ta reală aici dacă vrei AI
+      GEMINI_API_KEY: "AIzaSyDb4AotdL2-Su7fvhppBEHSUpj9wFtQN3o"
+      GEMINI_ENABLED: "true"
+      FALLBACK_TO_AI: "true"
+    networks: ["energy-network"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.support.rule=PathPrefix(`/support`)"
+      - "traefik.http.routers.support.entrypoints=web"
+      # Chat-ul este protejat - userii trebuie să fie logați
+      - "traefik.http.routers.support.middlewares=jwt-verify@docker"
+      - "traefik.http.routers.support.service=customer-support-service"
+      - "traefik.http.services.customer-support-service.loadbalancer.server.port=8087"
 
 networks:
   energy-network:

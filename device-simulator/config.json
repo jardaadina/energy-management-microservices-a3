@@ -1,12 +1,12 @@
 {
-  "device_id": 1,
+  "device_id": 2,
   "rabbitmq": {
     "host": "localhost",
     "port": 5672,
     "username": "admin",
     "password": "admin123",
     "exchange": "device-data-exchange",
-    "routing_key": "device.data.measurement"
+    "routing_key": "device.data"
   },
   "simulation": {
     "base_load": 0.4,
