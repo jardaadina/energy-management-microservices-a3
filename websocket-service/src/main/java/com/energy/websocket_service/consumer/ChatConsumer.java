@@ -23,10 +23,8 @@ public class ChatConsumer {
         try {
             log.info("Received chat message: {}", message);
 
-            // Parse the chat message
             ChatMessage chatMessage = objectMapper.readValue(message, ChatMessage.class);
 
-            // Send to recipient via WebSocket
             webSocketService.sendChatMessage(chatMessage.getRecipientId(), chatMessage);
 
             log.info("Chat message sent from {} to {}",

@@ -2,18 +2,24 @@ package com.energy.monitoring.service;
 
 import com.energy.monitoring.dto.DeviceMeasurement;
 import com.energy.monitoring.dto.HourlyConsumptionDTO;
+import com.energy.monitoring.entity.DeviceReference;
 import com.energy.monitoring.entity.EnergyConsumption;
 import com.energy.monitoring.repository.DeviceReferenceRepository;
 import com.energy.monitoring.repository.EnergyConsumptionRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +29,14 @@ public class MonitoringService {
 
     private final EnergyConsumptionRepository consumptionRepository;
     private final DeviceReferenceRepository  referenceRepository;
+    private final RabbitTemplate rabbitTemplate;
+    private final ObjectMapper objectMapper;
+
+    @Value("${rabbitmq.exchange.alerts}")
+    private String alertExchange;
+
+    @Value("${rabbitmq.routing-key.alert}")
+    private String alertRoutingKey;
 
     @Transactional
     public void processDeviceMeasurement(DeviceMeasurement measurement) {
@@ -40,13 +54,47 @@ public class MonitoringService {
                         .totalConsumption(0.0)
                         .build());
 
-        consumption.setTotalConsumption(
-                consumption.getTotalConsumption() + measurement.getMeasurementValue()
-        );
-
+        double newTotal = consumption.getTotalConsumption() + measurement.getMeasurementValue();
+        consumption.setTotalConsumption(newTotal);
         consumptionRepository.save(consumption);
+
         log.info("Updated hourly consumption for device {} at {}: {} kWh",
-                measurement.getDeviceId(), hourlyTimestamp, consumption.getTotalConsumption());
+                measurement.getDeviceId(), hourlyTimestamp, newTotal);
+
+        checkAndSendAlert(measurement.getDeviceId(), newTotal, hourlyTimestamp);
+    }
+
+    private void checkAndSendAlert(Long deviceId, double currentConsumption, LocalDateTime timestamp) {
+        try {
+            DeviceReference deviceRef = referenceRepository.findById(deviceId).orElse(null);
+
+            if (deviceRef != null && currentConsumption > deviceRef.getMaxConsumption()) {
+                log.warn("OVERCONSUMPTION DETECTED! Device: {}, Limit: {}, Current: {}",
+                        deviceId, deviceRef.getMaxConsumption(), currentConsumption);
+
+                Map<String, Object> alert = new HashMap<>();
+                alert.put("deviceId", deviceId);
+
+                if (deviceRef.getUserId() != null) {
+                    alert.put("userId", deviceRef.getUserId());
+                } else {
+                    log.error("Device {} has no user assigned in monitoring DB! Cannot send alert.", deviceId);
+                    return; // Nu putem trimite alerta fără destinatar
+                }
+
+                alert.put("timestamp", timestamp.toString());
+                alert.put("measurementValue", currentConsumption);
+                alert.put("limit", deviceRef.getMaxConsumption());
+                alert.put("message", "High energy consumption detected!");
+
+                String jsonAlert = objectMapper.writeValueAsString(alert);
+                rabbitTemplate.convertAndSend(alertExchange, alertRoutingKey, jsonAlert);
+
+                log.info("Alert sent to RabbitMQ for User {}: {}", deviceRef.getUserId(), jsonAlert);
+            }
+        } catch (Exception e) {
+            log.error("Failed to process alert logic", e);
+        }
     }
 
     @Transactional(readOnly = true)

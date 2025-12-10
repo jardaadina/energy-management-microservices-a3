@@ -27,15 +27,12 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.queue.chat-messages}")
     private String chatMessagesQueue;
 
-    // Cheia pentru Request (User -> ChatService)
     @Value("${rabbitmq.routing-key.chat}")
     private String chatRoutingKey;
 
-    // Cheia pentru Response (ChatService -> User)
     @Value("${rabbitmq.routing-key.chat-response}")
     private String chatResponseRoutingKey;
 
-    // === NOUTATE: Configurare Coadă Admin ===
     @Bean
     public Queue adminQueue() {
         return new Queue("chat-admin-notifications", true);
@@ -43,13 +40,11 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding adminBinding(Queue adminQueue, TopicExchange chatExchange) {
-        // Ascultăm mesajele trimise de notifyAdmin din ChatService
         return BindingBuilder
                 .bind(adminQueue)
                 .to(chatExchange)
                 .with("chat.admin.notification");
     }
-    // ========================================
 
     @Bean
     public TopicExchange alertExchange() {

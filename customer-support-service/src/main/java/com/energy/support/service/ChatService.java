@@ -41,26 +41,17 @@ public class ChatService {
     @Value("${chatbot.fallback-to-ai:true}")
     private boolean fallbackToAI;
 
-    /**
-     * Process incoming chat message
-     * 1. Try rule-based response
-     * 2. If no match and AI enabled, use AI
-     * 3. Forward to admin if needed
-     */
+
     public Mono<ChatResponse> handleMessage(ChatRequest request) {
         log.info("Processing chat message from user: {}", request.getUserId());
 
         String messageLower = request.getMessage().toLowerCase();
 
-        // --- MODIFICARE: Bypass pentru Admin ---
-        // Dacă utilizatorul cere explicit admin, ignorăm AI-ul și regulile
         if (messageLower.contains("admin") || messageLower.contains("human") || messageLower.contains("help")) {
             log.info("User requested admin explicitly");
 
-            // Trimitem notificarea către Admin Panel
             notifyAdmin(request);
 
-            // Răspundem utilizatorului că se face legătura
             ChatResponse systemResponse = new ChatResponse(
                     "I have forwarded your request to a human administrator. They will chat with you shortly.",
                     "FORWARDED_TO_ADMIN"
@@ -68,40 +59,31 @@ public class ChatService {
             sendResponseToWebSocket(request.getUserId(), systemResponse);
             return Mono.just(systemResponse);
         }
-        // ---------------------------------------
 
-        // 1. First, try rule-based response
         ChatResponse ruleResponse = ruleBasedService.processMessage(request.getMessage());
         if (ruleResponse != null) {
             sendResponseToWebSocket(request.getUserId(), ruleResponse);
             return Mono.just(ruleResponse);
         }
 
-        // 2. No rule matched - try AI
         if (fallbackToAI && aiService.isEnabled()) {
-            // ... restul codului AI ...
             return aiService.generateAIResponse(request.getMessage())
                     .doOnSuccess(aiResponse -> {
                         sendResponseToWebSocket(request.getUserId(), aiResponse);
                     });
         }
 
-        // 3. Fallback to Admin (dacă AI e oprit)
         log.info("No rule matched and AI disabled, forwarding to admin");
         notifyAdmin(request);
-        // ... restul codului ...
-        return Mono.empty(); // sau returnează response-ul de admin
+        return Mono.empty();
     }
 
-    /**
-     * Send response back to user via WebSocket (through RabbitMQ)
-     */
+
     private void sendResponseToWebSocket(String userId, ChatResponse response) {
         try {
             response.setMessageId(UUID.randomUUID().toString());
             response.setTimestamp(LocalDateTime.now());
 
-            // Create message payload for WebSocket
             Map<String, Object> messagePayload = new HashMap<>();
             messagePayload.put("messageId", response.getMessageId());
             messagePayload.put("senderId", "support-bot");
@@ -128,9 +110,6 @@ public class ChatService {
         }
     }
 
-    /**
-     * Notify admin about new user message
-     */
     private void notifyAdmin(ChatRequest request) {
         try {
             Map<String, Object> adminNotification = new HashMap<>();
@@ -141,7 +120,6 @@ public class ChatService {
 
             String jsonMessage = objectMapper.writeValueAsString(adminNotification);
 
-            // Send to admin's queue
             rabbitTemplate.convertAndSend(
                     chatExchange,
                     "chat.admin.notification",
@@ -155,9 +133,6 @@ public class ChatService {
         }
     }
 
-    /**
-     * Handle admin response to user
-     */
     public void handleAdminResponse(String adminId, String userId, String message) {
         try {
             Map<String, Object> messagePayload = new HashMap<>();

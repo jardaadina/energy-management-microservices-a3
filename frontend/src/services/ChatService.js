@@ -1,8 +1,5 @@
 import apiClient from './apiClient';
 
-/**
- * Send a chat message to customer support (REST fallback)
- */
 const sendChatMessage = async (userId, message) => {
     try {
         const response = await apiClient.post('/support/chat', {
@@ -17,9 +14,7 @@ const sendChatMessage = async (userId, message) => {
     }
 };
 
-/**
- * Get chatbot statistics (admin only)
- */
+
 const getChatbotStats = async () => {
     try {
         const response = await apiClient.get('/support/stats');
@@ -30,9 +25,7 @@ const getChatbotStats = async () => {
     }
 };
 
-/**
- * Get all chatbot rules (admin only)
- */
+
 const getChatbotRules = async () => {
     try {
         const response = await apiClient.get('/support/rules');
@@ -43,9 +36,7 @@ const getChatbotRules = async () => {
     }
 };
 
-/**
- * Admin sends message to user
- */
+
 const adminSendMessage = async (adminId, userId, message) => {
     try {
         const response = await apiClient.post('/support/admin/send', {

@@ -14,7 +14,7 @@ public class DeviceDataConsumer {
 
     private final MonitoringService monitoringService;
 
-    @RabbitListener(queues = "${rabbitmq.queue.device-data}")
+    @RabbitListener(queues = "${rabbitmq.queue.ingest}")
     public void consumeDeviceData(DeviceMeasurement measurement) {
         log.info("Received device measurement: deviceId={}, value={}, timestamp={}",
                 measurement.getDeviceId(),

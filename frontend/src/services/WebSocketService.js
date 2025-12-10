@@ -1,7 +1,6 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-// Asigură-te că portul e 8086 (WebSocket Service) sau 80 (Gateway)
 const WS_URL = 'http://localhost/ws';
 
 class WebSocketService {
@@ -20,13 +19,11 @@ class WebSocketService {
 
 
     connect(userId, onMessageReceived, onAlertReceived) {
-        // Dacă suntem deja conectați cu ACELAȘI user, nu facem nimic
         if (this.connected && this.userId === userId) {
             console.log('WebSocket already connected for user:', userId);
             return;
         }
 
-        // Dacă ne conectăm cu ALT user, deconectăm întâi
         if (this.connected && this.userId !== userId) {
             this.disconnect();
         }
@@ -46,11 +43,6 @@ class WebSocketService {
             console.log('=== WebSocket Connected! ===');
             this.connected = true;
 
-            // =======================================================
-            // FIX: Ascultăm pe TOPIC-uri publice cu ID-ul userului
-            // =======================================================
-
-            // 1. Chat Messages
             const chatPath = `/topic/user/${userId}/messages`;
             console.log(`Subscribing to: ${chatPath}`);
 
@@ -66,7 +58,6 @@ class WebSocketService {
                 })
             );
 
-            // 2. Alerts
             const alertPath = `/topic/user/${userId}/alerts`;
             console.log(`Subscribing to: ${alertPath}`);
 
@@ -82,7 +73,6 @@ class WebSocketService {
                 })
             );
 
-            // Anunțăm serverul că am intrat
             this.sendJoinNotification(userId);
         };
 
@@ -105,7 +95,7 @@ class WebSocketService {
             senderId,
             recipientId: recipientId || 'support-bot',
             content,
-            senderRole: role, // <--- AICI ERA PROBLEMA (era hardcodat 'USER')
+            senderRole: role,
             timestamp: new Date().toISOString(),
             type: 'CHAT'
         };

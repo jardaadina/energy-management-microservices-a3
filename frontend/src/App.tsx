@@ -614,7 +614,6 @@ function AssignmentManagementTab() {
                     </div>
                 </div>
 
-                {/* Partea de "User Lookup" & "Unassign" (Corectată) */}
                 <div className="mt-8 space-y-4 rounded-md border p-4">
                     <h3 className="font-semibold">View & Unassign User Devices</h3>
                     <div className="flex gap-4">
@@ -689,7 +688,6 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
         try {
             const data = await deviceService.getMyDevices();
             setDevices(data);
-            // Select first device by default if available
             if (data.length > 0 && !selectedDeviceId) {
                 setSelectedDeviceId(data[0].id);
             }
@@ -797,7 +795,6 @@ function UserPage({ user, onLogout }: { user: User; onLogout: () => void }) {
                         </CardContent>
                     </Card>
 
-                    {/* Energy Chart - Shows only if a device is selected */}
                     {selectedDeviceId && (
                         <EnergyChart deviceId={selectedDeviceId} />
                     )}

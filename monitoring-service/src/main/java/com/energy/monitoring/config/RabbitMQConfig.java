@@ -11,8 +11,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    @Value("${rabbitmq.queue.device-data}")
-    private String deviceDataQueue;
+    @Value("${rabbitmq.queue.ingest}")
+    private String myIngestQueueName;
+
+    @Value("${rabbitmq.routing-key.ingest}")
+    private String ingestRoutingKey;
 
     @Value("${rabbitmq.queue.sync}")
     private String syncQueue;
@@ -25,7 +28,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue deviceDataQueue() {
-        return new Queue(deviceDataQueue, true);
+        return new Queue(myIngestQueueName, true);
     }
 
     @Bean
@@ -38,7 +41,7 @@ public class RabbitMQConfig {
         return BindingBuilder
                 .bind(deviceDataQueue())
                 .to(deviceDataExchange())
-                .with("device.data.#");
+                .with(ingestRoutingKey);
     }
 
     @Bean

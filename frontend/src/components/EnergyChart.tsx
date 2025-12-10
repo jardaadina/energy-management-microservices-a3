@@ -13,6 +13,7 @@ import {
     Title,
     Tooltip,
     Legend,
+    Filler
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { toast } from 'sonner';
@@ -26,7 +27,8 @@ ChartJS.register(
     BarElement,
     Title,
     Tooltip,
-    Legend
+    Legend,
+    Filler
 );
 
 type HourlyConsumption = {

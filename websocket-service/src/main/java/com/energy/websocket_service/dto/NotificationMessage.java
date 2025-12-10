@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NotificationMessage {
-    private String type; // "ALERT", "INFO", "WARNING", "ERROR"
+    private String type;
     private String title;
     private String message;
     private LocalDateTime timestamp;

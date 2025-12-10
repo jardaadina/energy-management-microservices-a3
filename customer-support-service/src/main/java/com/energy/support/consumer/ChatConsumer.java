@@ -26,7 +26,6 @@ public class ChatConsumer {
         try {
             log.info("Received chat request: {}", message);
 
-            // Parse the incoming message
             JsonNode jsonNode = objectMapper.readTree(message);
 
             ChatRequest request = new ChatRequest();
@@ -34,7 +33,6 @@ public class ChatConsumer {
             request.setUserId(jsonNode.path("senderId").asText());
             request.setMessage(jsonNode.path("content").asText());
 
-            // Parse timestamp
             String timestampStr = jsonNode.path("timestamp").asText();
             if (timestampStr != null && !timestampStr.isEmpty()) {
                 request.setTimestamp(LocalDateTime.parse(timestampStr));
@@ -42,7 +40,6 @@ public class ChatConsumer {
                 request.setTimestamp(LocalDateTime.now());
             }
 
-            // Process the message
             chatService.handleMessage(request).subscribe(
                     response -> log.info("Chat response generated: {}", response.getResponseType()),
                     error -> log.error("Error processing chat message: {}", error.getMessage())

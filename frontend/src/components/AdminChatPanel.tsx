@@ -10,7 +10,7 @@ type Message = {
     content: string;
     timestamp: string;
     senderRole: 'ADMIN' | 'USER' | 'SYSTEM';
-    messageId?: string; // <--- AICI ERA LIPSA (Am adăugat-o acum)
+    messageId?: string;
 };
 
 type ActiveUser = {
@@ -26,7 +26,6 @@ type AdminChatPanelProps = {
 };
 
 export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelProps) {
-    // 1. INIȚIALIZARE DIN MEMORIE (Dacă există date salvate, le luăm pe alea)
     const [activeUsers, setActiveUsers] = useState<Map<string, ActiveUser>>(() => {
         return webSocketService.adminStore?.activeUsers || new Map();
     });
@@ -43,51 +42,42 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
     const [isConnected, setIsConnected] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // --- 1. FILTRU ANTI-DUBLURI (Memorie rapidă) ---
     const processedRefs = useRef(new Set<string>());
 
-    // --- DESIGN THEME ---
     const theme = {
         bg: '#ffffff',
         border: '#e2e8f0',
         sidebarBg: '#f8fafc',
-        primary: '#f97316', // Portocaliu (Amber/Orange) specific Adminului
+        primary: '#f97316',
         primaryHover: '#ea580c',
-        myMsgBg: '#fff7ed', // Fundal mesaj Admin (foarte deschis)
-        myMsgBorder: '#fdba74', // Border mesaj Admin
-        myMsgText: '#9a3412', // Text mesaj Admin
-        userMsgBg: '#eff6ff', // Fundal mesaj User (Albastru deschis)
+        myMsgBg: '#fff7ed',
+        myMsgBorder: '#fdba74',
+        myMsgText: '#9a3412',
+        userMsgBg: '#eff6ff',
         userMsgBorder: '#bfdbfe',
         userMsgText: '#1e3a8a',
     };
 
-    // 2. SALVARE ÎN MEMORIE
     useEffect(() => {
         webSocketService.adminStore = { activeUsers, messages, selectedUserId };
     }, [activeUsers, messages, selectedUserId]);
 
-    // 3. CONECTARE WEBSOCKET
     useEffect(() => {
         console.log('🔧 AdminChatPanel: Mounting...');
 
         const onMessageReceived = (message: any) => {
             const userId = message.senderRole === 'USER' ? message.senderId : message.recipientId;
 
-            // Ignorăm ecoul propriu trimis prin socket
             if (message.senderRole === 'ADMIN' && message.senderId === adminId) return;
 
-            // --- LOGICA DE DEDUPLICARE STRICTĂ ---
             const msgTime = new Date(message.timestamp).getTime();
-            // Folosim un key unic bazat pe ID sau conținut+timp
             const msgKey = message.messageId || `${userId}-${message.content}-${Math.floor(msgTime / 1000)}`;
 
             if (processedRefs.current.has(msgKey)) {
-                return; // Ignorăm dublura
+                return;
             }
             processedRefs.current.add(msgKey);
-            // -------------------------------------
 
-            // Update Mesaje
             setMessages(prev => {
                 const newMap = new Map(prev);
                 const list = newMap.get(userId) || [];
@@ -102,7 +92,6 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
                 return newMap;
             });
 
-            // Update Listă Useri
             setActiveUsers(prev => {
                 const newUsers = new Map(prev);
                 const existing = newUsers.get(userId);
@@ -129,7 +118,6 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
             });
         };
 
-        // Reconectare curată
         if (webSocketService.connected) webSocketService.disconnect();
 
         webSocketService.connect(
@@ -140,11 +128,9 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
         setIsConnected(true);
 
         return () => {
-            // Nu deconectăm la unmount
         };
     }, [adminId]);
 
-    // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, selectedUserId]);
@@ -156,7 +142,6 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
         const timestamp = new Date().toISOString();
         const msgId = `local-${Date.now()}`;
 
-        // Adăugăm în lista de procesate ca să nu-l primim înapoi ca "nou"
         const msgKey = `${selectedUserId}-${newMessage}-${Math.floor(new Date(timestamp).getTime() / 1000)}`;
         processedRefs.current.add(msgKey);
 
@@ -169,7 +154,6 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
             messageId: msgId
         };
 
-        // Update local
         setMessages(prev => {
             const newMap = new Map(prev);
             const list = newMap.get(selectedUserId) || [];
@@ -177,7 +161,6 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
             return newMap;
         });
 
-        // Trimite pe socket
         webSocketService.sendMessage(adminId, selectedUserId, newMessage, 'ADMIN');
         setNewMessage('');
     };
@@ -213,7 +196,6 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
             fontFamily: 'system-ui, sans-serif'
         }}>
 
-            {/* SIDEBAR */}
             <div style={{
                 width: '280px',
                 backgroundColor: theme.sidebarBg,
@@ -266,11 +248,9 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
                 </div>
             </div>
 
-            {/* CHAT AREA */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
                 {selectedUserId ? (
                     <>
-                        {/* Header Chat */}
                         <div style={{
                             padding: '16px 24px', borderBottom: `1px solid ${theme.border}`,
                             display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0
@@ -281,14 +261,12 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>User {selectedUserId}</h3>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#16a34a' }}>
-                                    {/* Un simplu cerc verde */}
                                     <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#16a34a' }} />
                                     Active
                                 </div>
                             </div>
                         </div>
 
-                        {/* Messages Area (Scrollable) */}
                         <div style={{
                             flex: 1,
                             overflowY: 'auto',
@@ -307,7 +285,6 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
                                         display: 'flex', flexDirection: 'column',
                                         alignItems: isAdmin ? 'flex-end' : 'flex-start'
                                     }}>
-                                        {/* Bula Mesaj */}
                                         <div style={{
                                             padding: '10px 16px',
                                             borderRadius: '12px',
@@ -331,7 +308,6 @@ export default function AdminChatPanel({ adminId, adminName }: AdminChatPanelPro
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input Area (Fix Jos) */}
                         <div style={{ padding: '16px', borderTop: `1px solid ${theme.border}`, backgroundColor: 'white', flexShrink: 0 }}>
                             <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '10px' }}>
                                 <input

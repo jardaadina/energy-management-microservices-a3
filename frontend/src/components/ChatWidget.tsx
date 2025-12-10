@@ -41,7 +41,8 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
     }, []);
 
     useEffect(() => {
-        if (mounted && isOpen && !isConnected) {
+        if (mounted && !isConnected && userId) {
+            console.log("Initializing WebSocket connection...");
             webSocketService.connect(
                 userId,
                 (message: any) => {
@@ -53,15 +54,15 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
                     }]);
                 },
                 (alert: any) => {
-                    console.log("Alert:", alert);
-                    toast.error("High Consumption Alert received!");
+                    console.log(" ALERT RECEIVED IN COMPONENT:", alert);
+                    toast.error(` Overconsumption Alert: ${alert.message} `, {
+                        duration: 5000, });
                 }
             );
             setIsConnected(true);
         }
-    }, [mounted, isOpen, userId, isConnected]);
+    }, [mounted, userId, isConnected]);
 
-    // Auto-scroll la ultimul mesaj
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -83,13 +84,12 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
 
     if (!mounted) return null;
 
-    // --- CULORI ---
     const colors = {
-        primary: '#4f46e5', // Indigo
+        primary: '#4f46e5',
         primaryDark: '#4338ca',
-        botBg: '#f3f4f6', // Gri
+        botBg: '#f3f4f6',
         botText: '#1f2937',
-        adminBg: '#fff7ed', // Portocaliu deschis
+        adminBg: '#fff7ed',
         adminBorder: '#fed7aa',
         adminText: '#9a3412',
         userBg: '#4f46e5',
@@ -118,16 +118,15 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
             ) : (
                 <Card style={{
                     width: '360px', height: '550px', maxHeight: '80vh',
-                    display: 'flex', flexDirection: 'column', // Layout flex vertical
+                    display: 'flex', flexDirection: 'column',
                     backgroundColor: 'white', borderRadius: '16px',
                     boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid #e5e7eb',
-                    overflow: 'hidden' // Important!
+                    overflow: 'hidden'
                 }}>
-                    {/* 1. HEADER (Fix, nu se mișcă) */}
                     <div style={{
                         background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryDark})`,
                         padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        color: 'white', flexShrink: 0 // Nu se micșorează
+                        color: 'white', flexShrink: 0
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ position: 'relative' }}>
@@ -146,8 +145,6 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
                         </Button>
                     </div>
 
-                    {/* 2. ZONA MESAJE (Se mărește/micșorează, are scroll) */}
-                    {/* flex: 1 ocupă tot spațiul rămas. overflow-y: auto permite scroll doar aici */}
                     <div
                         ref={scrollRef}
                         style={{
@@ -155,12 +152,11 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
                             overflowY: 'auto',
                             padding: '16px',
                             backgroundColor: 'white',
-                            minHeight: 0 // Critic pentru flexbox scroll
+                            minHeight: 0
                         }}
                     >
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-                            {/* Mesaj Intro */}
                             <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', marginLeft: '4px' }}>
                                     <Bot size={12} color="#6b7280" />
@@ -185,7 +181,6 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
                                         maxWidth: '85%', display: 'flex', flexDirection: 'column',
                                         alignItems: isMe ? 'flex-end' : 'flex-start'
                                     }}>
-                                        {/* Label */}
                                         {!isMe && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', marginLeft: '4px' }}>
                                                 {isAdmin ? <User size={12} color={colors.adminText} /> : <Bot size={12} color="#6b7280" />}
@@ -198,7 +193,6 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
                                             </div>
                                         )}
 
-                                        {/* Bula Mesaj */}
                                         <div style={{
                                             padding: '12px 16px', borderRadius: '18px',
                                             fontSize: '13px', lineHeight: '1.4',
@@ -220,12 +214,11 @@ export default function ChatWidget({ userId, userName, role }: ChatWidgetProps) 
                         </div>
                     </div>
 
-                    {/* 3. INPUT (Fix, nu se mișcă, stă mereu jos) */}
                     <div style={{
                         padding: '16px',
                         borderTop: '1px solid #e5e7eb',
                         backgroundColor: 'white',
-                        flexShrink: 0 // Critic: nu lasă inputul să fie micșorat sau ascuns
+                        flexShrink: 0
                     }}>
                         <form
                             onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}

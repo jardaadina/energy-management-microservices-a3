@@ -23,10 +23,8 @@ public class NotificationConsumer {
         try {
             log.info("Received overconsumption alert: {}", message);
 
-            // Parse the alert message
             OverconsumptionAlert alert = objectMapper.readValue(message, OverconsumptionAlert.class);
 
-            // Send to specific user via WebSocket
             webSocketService.sendAlert(alert.getUserId().toString(), alert);
 
             log.info("Alert sent to user {} for device {}", alert.getUserId(), alert.getDeviceId());

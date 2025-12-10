@@ -11,10 +11,10 @@ import java.util.List;
 @AllArgsConstructor
 public class ChatRule {
     private String id;
-    private List<String> keywords; // Keywords to match
-    private String pattern; // Regex pattern (optional)
+    private List<String> keywords;
+    private String pattern;
     private String response;
-    private int priority; // Higher priority rules are checked first
+    private int priority;
     private boolean caseSensitive;
 
     public ChatRule(String id, List<String> keywords, String response, int priority) {

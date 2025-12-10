@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 public class ChatResponse {
     private String messageId;
     private String message;
-    private String responseType; // "RULE_BASED", "AI_DRIVEN", "ADMIN"
+    private String responseType;
     private LocalDateTime timestamp;
-    private String matchedRuleId; // For debugging/analytics
+    private String matchedRuleId;
 
     public ChatResponse(String message, String responseType) {
         this.message = message;

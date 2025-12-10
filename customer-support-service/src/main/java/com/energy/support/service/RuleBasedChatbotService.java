@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -139,7 +138,6 @@ public class RuleBasedChatbotService {
                 5
         ));
 
-        // Sort rules by priority (highest first)
         rules.sort((r1, r2) -> Integer.compare(r2.getPriority(), r1.getPriority()));
 
         log.info("Initialized {} chatbot rules", rules.size());
@@ -152,7 +150,6 @@ public class RuleBasedChatbotService {
 
         String lowerMessage = message.toLowerCase().trim();
 
-        // Check each rule
         for (ChatRule rule : rules) {
             if (matchesRule(lowerMessage, rule)) {
                 log.info("Matched rule: {} for message: {}", rule.getId(), message);
@@ -165,18 +162,15 @@ public class RuleBasedChatbotService {
             }
         }
 
-        // No rule matched
         log.info("No rule matched for message: {}", message);
         return null;
     }
 
     private boolean matchesRule(String message, ChatRule rule) {
-        // If pattern is specified, use regex matching
         if (rule.getPattern() != null && !rule.getPattern().isEmpty()) {
             return message.matches(".*" + rule.getPattern() + ".*");
         }
 
-        // Otherwise, check keywords
         if (rule.getKeywords() != null) {
             for (String keyword : rule.getKeywords()) {
                 String keywordToMatch = rule.isCaseSensitive() ? keyword : keyword.toLowerCase();

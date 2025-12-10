@@ -23,14 +23,11 @@ public class WebSocketService {
     private final Map<String, List<ChatMessage>> offlineMessages = new ConcurrentHashMap<>();
 
     private boolean isAdminConnected = false;
-    /**
-     * Send overconsumption alert to specific user
-     */
+
     public void sendAlert(String userId, OverconsumptionAlert alert) {
         try {
             log.info("Sending alert to user: {}", userId);
 
-            // Create notification wrapper
             NotificationMessage notification = new NotificationMessage(
                     "ALERT",
                     "Overconsumption Warning",
@@ -39,7 +36,6 @@ public class WebSocketService {
                     alert
             );
 
-            // FIX: Trimitem pe topic public cu ID-ul userului
             String destination = "/topic/user/" + userId + "/alerts";
             messagingTemplate.convertAndSend(destination, notification);
             messagingTemplate.convertAndSend("/topic/user/admin/alerts", alert);
@@ -50,27 +46,18 @@ public class WebSocketService {
         }
     }
 
-    /**
-     * Send chat message to specific user
-     */
     public void sendChatMessage(String recipientId, ChatMessage message) {
         log.info("Sending chat message to recipient: {}", recipientId);
 
-        // Dacă destinatarul este admin
         if ("admin".equals(recipientId)) {
-            // Încercăm să trimitem
             messagingTemplate.convertAndSend("/topic/user/admin/messages", message);
 
-            // DAR, pentru siguranță, salvăm și în buffer dacă adminul nu a confirmat prezența
-            // (Notă: Într-un sistem real am verifica sesiunile active, aici simplificăm)
             addToOfflineBuffer("admin", message);
         } else {
-            // Mesaj către user normal
             messagingTemplate.convertAndSend("/topic/user/" + recipientId + "/messages", message);
         }
     }
 
-    // Metodă apelată când Adminul dă JOIN
     public void notifyAdminConnected() {
         log.info("Admin connected! Replaying offline messages...");
         isAdminConnected = true;
@@ -80,14 +67,12 @@ public class WebSocketService {
             for (ChatMessage msg : pending) {
                 messagingTemplate.convertAndSend("/topic/user/admin/messages", msg);
             }
-            // Curățăm bufferul după trimitere
             pending.clear();
         }
     }
 
     private void addToOfflineBuffer(String userId, ChatMessage message) {
         offlineMessages.computeIfAbsent(userId, k -> new ArrayList<>()).add(message);
-        // Limităm bufferul la ultimele 50 mesaje ca să nu explodeze memoria
         if (offlineMessages.get(userId).size() > 50) {
             offlineMessages.get(userId).remove(0);
         }

@@ -98,7 +98,6 @@ public class AIService {
 
         request.put("contents", List.of(content));
 
-        // CONFIG NOU
         Map<String, Object> generationConfig = new HashMap<>();
         generationConfig.put("temperature", 0.7);
         generationConfig.put("maxOutputTokens", 1000);
@@ -113,7 +112,6 @@ public class AIService {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
 
-            // 1. Check candidates
             JsonNode candidates = root.path("candidates");
             if (!candidates.isArray() || candidates.size() == 0) {
                 return new ChatResponse("AI returned no candidates.", "AI_PARSE_ERROR");
@@ -121,10 +119,8 @@ public class AIService {
 
             JsonNode candidate = candidates.get(0);
 
-            // 2. Two possible formats for content:
             JsonNode content = candidate.path("content");
 
-            // Format A: content.parts[*].text
             if (content.has("parts")) {
                 JsonNode parts = content.path("parts");
                 if (parts.isArray() && parts.size() > 0) {
@@ -135,7 +131,6 @@ public class AIService {
                 }
             }
 
-            // Format B: Gemini 2.5 / 3.0 returns content as an ARRAY
             if (content.isArray()) {
                 for (JsonNode c : content) {
                     JsonNode parts = c.path("parts");
@@ -148,7 +143,6 @@ public class AIService {
                 }
             }
 
-            // Nothing worked â†’ log and return
             log.warn("Could not extract text from Gemini response: " + responseBody);
             return new ChatResponse(
                     "I received an unclear response. Please rephrase your question or contact an administrator.",

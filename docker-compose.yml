@@ -224,37 +224,6 @@ services:
       - "traefik.http.services.auth-service.loadbalancer.server.port=8083"
 
   # ============================================
-  # MONITORING SERVICE
-  # ============================================
-  monitoring-service:
-    build:
-      context: ./monitoring-service
-      dockerfile: Dockerfile
-    container_name: monitoring-service
-    depends_on:
-      monitoring-db: {condition: service_healthy}
-      rabbitmq: {condition: service_healthy}
-    ports:
-      - "8084:8084"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://monitoring-db:5432/monitoring_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: Luci2004
-      SERVER_PORT: 8084
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: admin
-      RABBITMQ_PASSWORD: admin123
-    networks: ["energy-network"]
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.monitoring-api.rule=PathPrefix(`/monitoring`)"
-      - "traefik.http.routers.monitoring-api.entrypoints=web"
-      - "traefik.http.routers.monitoring-api.middlewares=jwt-verify@docker"
-      - "traefik.http.routers.monitoring-api.service=monitoring-service"
-      - "traefik.http.services.monitoring-service.loadbalancer.server.port=8084"
-
-  # ============================================
   # FRONTEND SERVICE
   # ============================================
   frontend-service:
@@ -272,7 +241,7 @@ services:
       - "traefik.http.services.frontend-service.loadbalancer.server.port=80"
 
   # ============================================
-  # WEBSOCKET SERVICE (Assignment 3)
+  # WEBSOCKET SERVICE
   # ============================================
   websocket-service:
     build:
@@ -281,7 +250,6 @@ services:
     container_name: websocket-service
     depends_on:
       rabbitmq: {condition: service_healthy}
-    # Expunem portul și direct pentru teste locale dacă Traefik face figuri cu WS
     ports:
       - "8086:8086"
     environment:
@@ -301,7 +269,7 @@ services:
       - "traefik.http.services.websocket-service.loadbalancer.server.port=8086"
 
   # ============================================
-  # CUSTOMER SUPPORT SERVICE (Assignment 3)
+  # CUSTOMER SUPPORT SERVICE
   # ============================================
   customer-support-service:
     build:
@@ -318,7 +286,6 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: admin
       RABBITMQ_PASSWORD: admin123
-      # Pune cheia ta reală aici dacă vrei AI
       GEMINI_API_KEY: "AIzaSyDb4AotdL2-Su7fvhppBEHSUpj9wFtQN3o"
       GEMINI_ENABLED: "true"
       FALLBACK_TO_AI: "true"
@@ -332,6 +299,102 @@ services:
       - "traefik.http.routers.support.service=customer-support-service"
       - "traefik.http.services.customer-support-service.loadbalancer.server.port=8087"
 
+  # ============================================
+  # LOAD BALANCER SERVICE
+  # ============================================
+  load-balancer-service:
+    build:
+      context: ./load-balancer-service
+      dockerfile: Dockerfile
+    container_name: load-balancer-service
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+    environment:
+      SERVER_PORT: 8088
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
+    networks: ["energy-network"]
+
+  # ============================================
+  # MONITORING SERVICE REPLICAS
+  # ============================================
+  # REPLICA 1
+  monitoring-service-1:
+    build:
+      context: ./monitoring-service
+      dockerfile: Dockerfile
+    container_name: monitoring-service-1
+    depends_on:
+      monitoring-db: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://monitoring-db:5432/monitoring_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Luci2004
+      SERVER_PORT: 8084
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
+      REPLICA_ID: 1
+    networks: ["energy-network"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitoring-1.rule=PathPrefix(`/monitoring`)"
+      - "traefik.http.routers.monitoring-1.service=monitoring-service"
+      - "traefik.http.services.monitoring-service.loadbalancer.server.port=8084"
+
+  # REPLICA 2
+  monitoring-service-2:
+    build:
+      context: ./monitoring-service
+      dockerfile: Dockerfile
+    container_name: monitoring-service-2
+    depends_on:
+      monitoring-db: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://monitoring-db:5432/monitoring_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Luci2004
+      SERVER_PORT: 8084
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
+      REPLICA_ID: 2
+    networks: ["energy-network"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitoring-2.rule=PathPrefix(`/monitoring`)"
+      - "traefik.http.routers.monitoring-2.service=monitoring-service"
+
+  # REPLICA 3
+  monitoring-service-3:
+    build:
+      context: ./monitoring-service
+      dockerfile: Dockerfile
+    container_name: monitoring-service-3
+    depends_on:
+      monitoring-db: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://monitoring-db:5432/monitoring_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Luci2004
+      SERVER_PORT: 8084
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin123
+      REPLICA_ID: 3
+    networks: ["energy-network"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitoring-3.rule=PathPrefix(`/monitoring`)"
+      - "traefik.http.routers.monitoring-3.service=monitoring-service"
 networks:
   energy-network:
     driver: bridge

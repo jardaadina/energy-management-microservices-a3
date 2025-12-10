@@ -19,4 +19,7 @@ public class DeviceReference {
 
     @Column(nullable = false)
     private Double maxConsumption;
+
+    @Column(nullable = false)
+    private Long userId;
 }

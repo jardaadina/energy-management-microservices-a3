@@ -22,18 +22,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Enable a simple in-memory broker
         config.enableSimpleBroker("/topic", "/queue");
-        // Prefix for messages FROM client TO server
         config.setApplicationDestinationPrefixes(appPrefix);
-        // Prefix for user-specific messages
         config.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint(endpoint)
-                .setAllowedOriginPatterns("*") // For development - restrict in production
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
 }

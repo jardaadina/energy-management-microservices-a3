@@ -44,19 +44,14 @@ public class WebSocketController {
                 message.setMessageId(UUID.randomUUID().toString());
             }
 
-            // === MODIFICARE AICI ===
-            // Dacă Adminul trimite mesaj, îl livrăm direct Userului (fără AI/Reguli)
             if ("admin".equals(message.getSenderId()) || "ADMIN".equals(message.getSenderRole())) {
                 log.info("Admin responding directly to user {}", message.getRecipientId());
                 webSocketService.sendChatMessage(message.getRecipientId(), message);
-                return; // Stop, nu mai trimite la RabbitMQ
+                return;
             }
-            // =======================
 
-            // Convert to JSON string
             String jsonMessage = objectMapper.writeValueAsString(message);
 
-            // Forward normal messages (User -> Bot) to Customer Support Service
             rabbitTemplate.convertAndSend(chatExchange, chatRoutingKey, jsonMessage);
 
             log.info("Chat message forwarded to Customer Support Service: {}", jsonMessage);
@@ -85,10 +80,9 @@ public class WebSocketController {
             message.setTimestamp(LocalDateTime.now());
             message.setContent(message.getSenderId() + " joined the chat");
 
-            // DACĂ ESTE ADMINUL
             if ("admin".equals(message.getSenderId())) {
                 log.info("Admin JOIN detected via WebSocket");
-                webSocketService.notifyAdminConnected(); // <--- APEL NOU
+                webSocketService.notifyAdminConnected();
             }
 
             if ("admin".equals(message.getRecipientId())) {

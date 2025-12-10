@@ -1,9 +1,5 @@
 import apiClient from './apiClient';
 
-/**
- * Preia TOȚI userii (doar admin)
- * @returns {Promise<any[]>}
- */
 const getAllUsers = async () => {
     try {
         const response = await apiClient.get('/users');
@@ -14,11 +10,6 @@ const getAllUsers = async () => {
     }
 };
 
-/**
- * Creează un user nou (doar admin)
- * @param {object} userData
- * @returns {Promise<any>}
- */
 const createUser = async (userData) => {
     try {
         const response = await apiClient.post('/users', userData);
@@ -29,12 +20,7 @@ const createUser = async (userData) => {
     }
 };
 
-/**
- * Actualizează un user (doar admin)
- * @param {string} id
- * @param {object} updates
- * @returns {Promise<any>}
- */
+
 const updateUser = async (id, updates) => {
     try {
         const response = await apiClient.put(`/users/${id}`, updates);
@@ -45,11 +31,6 @@ const updateUser = async (id, updates) => {
     }
 };
 
-/**
- * Șterge un user (doar admin)
- * @param {string} id
- * @returns {Promise<void>}
- */
 const deleteUser = async (id) => {
     try {
         await apiClient.delete(`/users/${id}`);

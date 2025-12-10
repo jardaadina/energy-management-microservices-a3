@@ -1,19 +1,5 @@
 import apiClient from './apiClient';
 
-/**
- * @typedef {object} User
- * @property {string} id
- * @property {string} username
- * @property {string} name
- * @property {'ADMIN' | 'CLIENT'} role
- */
-
-/**
- * Loghează utilizatorul și stochează token-ul
- * @param {string} username
- * @param {string} password
- * @returns {Promise<User | null>} Obiectul User
- */
 const login = async (username, password) => {
     try {
         const response = await apiClient.post('/auth/login', {
@@ -38,18 +24,11 @@ const login = async (username, password) => {
     }
 };
 
-/**
- * Deloghează utilizatorul
- */
 const logout = () => {
     localStorage.removeItem('jwtToken');
     window.location.href = '/';
 };
 
-/**
- * Verifică token-ul din localStorage la încărcarea aplicației
- * @returns {Promise<User | null>} Obiectul User dacă token-ul e valid
- */
 const validateSession = async () => {
     const token = localStorage.getItem('jwtToken');
     if (!token) {

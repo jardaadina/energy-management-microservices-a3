@@ -20,17 +20,13 @@ public class AdminConsumer {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // Ascultă coada definită la Pasul 1
     @RabbitListener(queues = "chat-admin-notifications")
     public void handleAdminNotification(String message) {
         try {
             log.info("Received admin notification: {}", message);
 
-            // Mesajul vine ca un Map simplu din ChatService (vezi notifyAdmin)
-            // Structura: {userId=..., message=..., timestamp=..., type=...}
             Map<String, Object> payload = objectMapper.readValue(message, Map.class);
 
-            // Convertim în formatul așteptat de Frontend (ChatMessage)
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.setSenderId((String) payload.get("userId"));
             chatMessage.setRecipientId("admin");
@@ -39,8 +35,6 @@ public class AdminConsumer {
             chatMessage.setTimestamp(java.time.LocalDateTime.now());
             chatMessage.setType(ChatMessage.MessageType.CHAT);
 
-            // Trimitem mesajul specific către admin
-            // Adminul este abonat la /topic/user/admin/messages
             webSocketService.sendChatMessage("admin", chatMessage);
 
             log.info("Forwarded user message to Admin Panel: {}", chatMessage.getContent());
