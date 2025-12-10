@@ -1,50 +1,38 @@
-# DS2025_30645_Jarda_Adina_Assignment_3
-# Energy Management System
+# Energy Management System (Distributed Systems)
 
-# Overview
-A comprehensive Distributed Energy Management System designed with a Microservices Architecture. The system monitors smart devices, tracks energy consumption in real-time, manages alerts, and provides intelligent customer support via a Chat System powered by AI and rule-based logic.
+## Assignment Overview
+This project extends the Distributed **Energy Management System** by introducing real-time communication capabilities and scalable data processing. The update adds a **Customer Support Chat**, **WebSocket-based notifications**, and a **Load Balancing Service** to distribute device data across multiple monitoring replicas.
 
-# Architecture
+## Architecture
+The system architecture has been updated to support high scalability and real-time interaction.
 
-### Core Services
-- **Authentication Service**: Secure access using JWT (JSON Web Tokens).
-- **User Service**: Manages client and administrator accounts.
-- **Device Service**: Handles smart device inventory and user mapping.
-- **Monitoring Service**: Processes energy consumption, calculates hourly usage, and detects threshold checks.
+## New Components:
 
-### New Distributed Components
-- **Load Balancer Service**: Distributes incoming sensor data using **Consistent Hashing** to ensure scalability.
-- **WebSocket Service**: Manages real-time bi-directional communication for push notifications (alerts) and live chat.
-- **Customer Support Service**: An intelligent support system featuring:
-    - **Rule-Based Engine**: Handles common FAQs automatically.
-    - **AI Integration**: Uses LLM for complex queries.
-    - **Admin Handoff**: Routes messages to human administrators when needed.
+ * **Customer Support Microservice:** Handles chat logic between clients and administrators. It includes a rule-based auto-responder and optional AI integration.
+ * **WebSocket Microservice:** Manages the transport layer for real-time chat messages and pushes overconsumption alerts to the frontend.
+ * **Load Balancing Service:** Acts as an ingestion pipeline. It consumes device data from RabbitMQ and distributes it to specific Ingest Queues based on a load-distribution strategy (e.g., Round Robin, Hashing).
+ * **Monitoring Replicas:** Multiple instances of the Monitoring Service now process data in parallel, pulled from their dedicated ingest queues.
 
-### Infrastructure
-- **Device Simulator**: Python application generating realistic smart meter readings.
-- **RabbitMQ**: Message broker for asynchronous communication (sensor data, chat messages, system events).
-- **PostgreSQL**: Database per service pattern.
-- **Frontend**: React-based web interface with admin dashboards and client charts.
+## Key Features
+ **1. Real-Time Customer Support**
+ * **Live Chat:** Authenticated users can initiate chat sessions with administrators.
+ * **Rule-Based Bot:** Automatically answers common questions using keyword matching or conditional logic.
+ * **AI Integration (Optional):** Fallback to LLM APIs (Gemini/OpenAI) for complex queries.
+ * **Secure Transport:** Uses WebSockets for low-latency, bidirectional messaging.
 
-# Technologies
+ **2. Event-Driven Notifications**
+ * **Overconsumption Alerts:** The monitoring pipeline detects energy spikes and instantly pushes alerts to the user's dashboard via WebSockets.
+ * **Typing Indicators & Read Receipts:** (Optional) Real-time feedback in the chat interface.
 
-- **Backend**: Java 25 , Spring Boot 3.x
-- **Communication**: REST APIs, WebSockets, RabbitMQ (AMQP)
-- **Database**: PostgreSQL
-- **Frontend**: React, TypeScript, Tailwind CSS, Shadcn/UI
-- **AI/ML**: Python (Simulator), LLM Integration (Support Service)
-- **Containerization**: Docker, Docker Compose
+ **3. Scalable Data Processing**
+ * **Load Balancing:** A dedicated service sits between the Device Simulator and the Monitoring Services.
+ * **Replica Management:** Deployed using Docker Swarm to manage multiple replicas of the monitoring microservice.
+ * **Dedicated Queues:** Ensures data isolation and efficient processing by routing messages to specific replica queues.
 
-# Prerequisites
-
-- Docker & Docker Compose
-- Java 17+ (optional, for local dev)
-- Node.js 18+ (optional, for local dev)
-- Python 3.8+ (for device simulator)
-
-# Build & Deployment
-
-1. **Clone Repository**
-   ```bash
-   git clone <repository-url>
-   cd energy-management-system
+## Tech Stack
+ * **Communication:** RabbitMQ (STOMP & AMQP), WebSockets.
+ * **Backend:** Java Spring Boot / .NET Web API.
+ * **Frontend:** ReactJS / Angular.
+ * **Orchestration:** Docker Swarm (Mandatory).
+ * **Gateway:** Traefik Reverse Proxy.
+ * **Database:** PostgreSQL / MySQL.
